@@ -338,8 +338,8 @@
                             <!-- Major ticks handled by numbers -->
                         </g>
 
-                        <!-- Roman Numerals Group -->
-                        <g id="romanNumerals" class="fill-[#381a08] font-serif font-black text-[22px] sm:text-[24px]" text-anchor="middle" dominant-baseline="central">
+                        <!-- Roman Numerals Group (Hidden by default, Arabic shown) -->
+                        <g id="romanNumerals" class="hidden fill-[#381a08] font-serif font-black text-[22px] sm:text-[24px]" text-anchor="middle" dominant-baseline="central">
                             <text x="150" y="38">XII</text>
                             <text x="208" y="53">I</text>
                             <text x="248" y="93">II</text>
@@ -354,8 +354,8 @@
                             <text x="92" y="53">XI</text>
                         </g>
 
-                        <!-- Standard Arabic Numerals Group (Hidden by default) -->
-                        <g id="arabicNumerals" class="hidden fill-[#381a08] font-sans font-black text-[24px] sm:text-[26px]" text-anchor="middle" dominant-baseline="central">
+                        <!-- Standard Arabic Numerals Group (Shown by default) -->
+                        <g id="arabicNumerals" class="fill-[#381a08] font-sans font-black text-[24px] sm:text-[26px]" text-anchor="middle" dominant-baseline="central">
                             <text x="150" y="38">12</text>
                             <text x="208" y="53">1</text>
                             <text x="248" y="93">2</text>
@@ -501,8 +501,8 @@
                 <div class="flex items-center justify-between text-sm">
                     <span class="text-slate-300 font-medium">Dial Numeral Style</span>
                     <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
-                        <button id="numeralRomanBtn" class="px-3 py-1 rounded-lg font-bold bg-amber-600 text-slate-950 transition">I, II, III (Roman)</button>
-                        <button id="numeralArabicBtn" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">1, 2, 3 (Arabic)</button>
+                        <button id="numeralArabicBtn" class="px-3 py-1 rounded-lg font-bold bg-amber-600 text-slate-950 transition">1, 2, 3 (Arabic)</button>
+                        <button id="numeralRomanBtn" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">I, II, III (Roman)</button>
                     </div>
                 </div>
 

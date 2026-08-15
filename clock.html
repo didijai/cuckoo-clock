@@ -150,6 +150,46 @@
             50% { opacity: 1; }
             100% { opacity: 0.75; }
         }
+
+        /* Stepless Time Slider (無段設計) */
+        .time-slider {
+            background: linear-gradient(to right, #1e293b 0%, #78350f 50%, #1e293b 100%);
+            border: 1px solid #334155;
+        }
+        .time-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #fcd34d, #d97706 60%, #92400e);
+            border: 2px solid #fef3c7;
+            box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+        .time-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 18px rgba(217, 119, 6, 0.9), 0 2px 8px rgba(0,0,0,0.7);
+        }
+        .time-slider::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #fcd34d, #d97706 60%, #92400e);
+            border: 2px solid #fef3c7;
+            box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+        .time-slider::-webkit-slider-runnable-track {
+            height: 12px;
+            border-radius: 9999px;
+        }
+        .time-slider::-moz-range-track {
+            height: 12px;
+            border-radius: 9999px;
+            background: linear-gradient(to right, #1e293b 0%, #78350f 50%, #1e293b 100%);
+            border: 1px solid #334155;
+        }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden items-center justify-between p-2 sm:p-4 relative">
@@ -522,10 +562,36 @@
             <div id="manualControls" class="space-y-3 border-t border-slate-800 pt-3 hidden">
                 <div>
                     <div class="flex justify-between text-xs font-medium text-slate-300 mb-1">
-                        <span>Set Hour:</span>
-                        <span id="manualHourVal" class="text-amber-400 font-bold">12:00</span>
+                        <span>Set Time <span class="text-slate-500">(stepless)</span>:</span>
+                        <span id="manualHourVal" class="text-amber-400 font-bold font-mono text-sm">12:00 AM</span>
                     </div>
-                    <input id="hourSlider" type="range" min="1" max="12" step="1" value="12" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    <div class="relative mt-1 mb-2">
+                        <input id="hourSlider" type="range" min="0" max="719" step="1" value="0" class="time-slider w-full h-3 rounded-full appearance-none cursor-pointer">
+                        <!-- Hour tick marks -->
+                        <div class="flex justify-between px-[6px] mt-1.5">
+                            <span class="text-[8px] text-slate-600">12</span>
+                            <span class="text-[8px] text-slate-600">1</span>
+                            <span class="text-[8px] text-slate-600">2</span>
+                            <span class="text-[8px] text-slate-600">3</span>
+                            <span class="text-[8px] text-slate-600">4</span>
+                            <span class="text-[8px] text-slate-600">5</span>
+                            <span class="text-[8px] text-slate-600">6</span>
+                            <span class="text-[8px] text-slate-600">7</span>
+                            <span class="text-[8px] text-slate-600">8</span>
+                            <span class="text-[8px] text-slate-600">9</span>
+                            <span class="text-[8px] text-slate-600">10</span>
+                            <span class="text-[8px] text-slate-600">11</span>
+                            <span class="text-[8px] text-slate-600">12</span>
+                        </div>
+                    </div>
+                    <!-- AM / PM Toggle -->
+                    <div class="flex items-center justify-between mt-1">
+                        <span class="text-[10px] text-slate-500 uppercase tracking-wider">Period</span>
+                        <div class="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs">
+                            <button id="amBtn" class="px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all">AM</button>
+                            <button id="pmBtn" class="px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all">PM</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -805,11 +871,50 @@
             }
         });
 
+        // AM/PM Toggle Elements
+        const amBtn = document.getElementById('amBtn');
+        const pmBtn = document.getElementById('pmBtn');
+        let isPM = false;
+
+        function updateTimeFromSlider() {
+            const val = parseInt(hourSlider.value, 10); // 0–719
+            const totalMinutes = val; // each unit = 1 minute across 12 hours
+            let displayHour = Math.floor(totalMinutes / 60); // 0–11
+            const displayMin = totalMinutes % 60;
+
+            // Convert to 24-hour for internal time
+            let hour24 = displayHour;
+            if (isPM) {
+                hour24 = displayHour === 0 ? 12 : displayHour + 12; // 0→12, 1→13 .. 11→23
+            }
+            // AM: 0→0, 1→1 .. 11→11
+
+            currentSimTime.setHours(hour24);
+            currentSimTime.setMinutes(displayMin);
+            currentSimTime.setSeconds(0);
+
+            // Display label: 12-hour format
+            const labelHour = displayHour === 0 ? 12 : displayHour;
+            const labelMin = String(displayMin).padStart(2, '0');
+            manualHourVal.textContent = `${labelHour}:${labelMin} ${isPM ? 'PM' : 'AM'}`;
+        }
+
+        amBtn.addEventListener('click', () => {
+            isPM = false;
+            amBtn.className = 'px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all';
+            pmBtn.className = 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all';
+            updateTimeFromSlider();
+        });
+        pmBtn.addEventListener('click', () => {
+            isPM = true;
+            pmBtn.className = 'px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all';
+            amBtn.className = 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all';
+            updateTimeFromSlider();
+        });
+
         // Slider Handlers
-        hourSlider.addEventListener('input', (e) => {
-            const hr = parseInt(e.target.value, 10);
-            currentSimTime.setHours(hr);
-            manualHourVal.textContent = `${hr > 12 ? hr - 12 : hr}:00 ${hr >= 12 ? 'PM' : 'AM'}`;
+        hourSlider.addEventListener('input', () => {
+            updateTimeFromSlider();
         });
 
         speedSlider.addEventListener('input', (e) => {

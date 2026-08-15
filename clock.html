@@ -152,19 +152,19 @@
         }
     </style>
 </head>
-<body class="flex flex-col min-h-screen items-center justify-between p-3 md:p-6 relative">
+<body class="flex flex-col h-screen overflow-hidden items-center justify-between p-2 sm:p-4 relative">
 
     <!-- Top Bar with Audio Enable and Gear Control Icon -->
-    <header class="w-full max-w-6xl flex items-center justify-between gap-4 z-40">
+    <header class="w-full max-w-6xl flex items-center justify-between gap-4 z-40 shrink-0">
         <div class="flex items-center gap-3">
-            <div class="p-2.5 bg-amber-900/40 rounded-xl border border-amber-600/30 text-amber-400 shadow-lg">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="p-2 sm:p-2.5 bg-amber-900/40 rounded-xl border border-amber-600/30 text-amber-400 shadow-lg">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
             <div>
-                <h1 class="text-xl md:text-2xl font-bold cinzel text-amber-200 tracking-wide">Black Forest Chalet</h1>
-                <p class="text-[10px] md:text-xs text-amber-400/80 tracking-wider uppercase font-semibold">Grand Cuckoo Master Edition</p>
+                <h1 class="text-lg sm:text-2xl font-bold cinzel text-amber-200 tracking-wide">Black Forest Chalet</h1>
+                <p class="text-[9px] sm:text-xs text-amber-400/80 tracking-wider uppercase font-semibold">Grand Cuckoo Master Edition</p>
             </div>
         </div>
 
@@ -177,8 +177,8 @@
             </button>
 
             <!-- Floating Settings Gear Button -->
-            <button id="openSettingsBtn" title="Open Settings Panel" class="p-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold rounded-2xl shadow-2xl transition-all border border-amber-400/50 flex items-center justify-center group">
-                <svg class="w-7 h-7 transform group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button id="openSettingsBtn" title="Open Settings Panel" class="p-2.5 sm:p-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold rounded-2xl shadow-2xl transition-all border border-amber-400/50 flex items-center justify-center group">
+                <svg class="w-6 h-6 sm:w-7 sm:h-7 transform group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
@@ -186,16 +186,16 @@
         </div>
     </header>
 
-    <!-- Main Display Stage -->
-    <main class="w-full max-w-5xl flex flex-col items-center justify-center my-auto py-2">
+    <!-- Main Display Stage: Dynamically fitted to available viewport -->
+    <main id="clockStage" class="w-full flex-1 flex items-center justify-center overflow-hidden relative min-h-0 my-auto py-1">
         
-        <div class="relative w-[360px] sm:w-[500px] md:w-[580px] flex flex-col items-center select-none filter drop-shadow-[0_30px_50px_rgba(0,0,0,0.9)]">
+        <div id="clockContainer" class="relative w-[580px] flex flex-col items-center select-none filter drop-shadow-[0_30px_50px_rgba(0,0,0,0.9)] shrink-0 transition-transform duration-75 ease-out">
             
             <!-- Roof Gable, Chimney & Dancers Terrace -->
-            <div class="relative w-full h-44 sm:h-52 z-20">
+            <div class="relative w-full h-52 z-20">
                 
                 <!-- Chimney with Smoke -->
-                <div class="absolute top-2 right-16 sm:right-24 z-10 flex flex-col items-center pointer-events-none">
+                <div class="absolute top-2 right-24 z-10 flex flex-col items-center pointer-events-none">
                     <div class="smoke-puff w-5 h-5 rounded-full bg-slate-300/40 blur-xs mb-[-10px]"></div>
                     <div class="smoke-puff-2 w-4 h-4 rounded-full bg-slate-300/30 blur-xs mb-[-6px]"></div>
                     <div class="w-10 h-14 wood-dark border border-amber-950 rounded-t-sm shadow-md">
@@ -213,8 +213,8 @@
                 </svg>
 
                 <!-- Upper Balcony with Animated Dancing Couples -->
-                <div id="dancingBalcony" class="absolute top-[48px] sm:top-[58px] left-1/2 -translate-x-1/2 w-56 sm:w-64 h-14 z-20 flex justify-center items-end overflow-hidden">
-                    <div class="w-48 sm:w-56 h-10 wood-dark border-t-2 border-amber-600/60 rounded-t-lg flex items-center justify-around px-2 relative shadow-md">
+                <div id="dancingBalcony" class="absolute top-[58px] left-1/2 -translate-x-1/2 w-64 h-14 z-20 flex justify-center items-end overflow-hidden">
+                    <div class="w-56 h-10 wood-dark border-t-2 border-amber-600/60 rounded-t-lg flex items-center justify-around px-2 relative shadow-md">
                         <div class="absolute inset-x-0 bottom-0 h-4 bg-amber-950/80 border-t border-amber-700/50 flex justify-between px-2">
                             <span class="w-1 h-2.5 bg-amber-500 rounded"></span>
                             <span class="w-1 h-2.5 bg-amber-500 rounded"></span>
@@ -241,7 +241,7 @@
                 </div>
 
                 <!-- Cuckoo Door House Apex -->
-                <div id="cuckooHouse" class="absolute top-[88px] sm:top-[102px] left-1/2 -translate-x-1/2 w-32 h-32 z-30 flex flex-col items-center">
+                <div id="cuckooHouse" class="absolute top-[102px] left-1/2 -translate-x-1/2 w-32 h-32 z-30 flex flex-col items-center">
                     <div class="relative w-24 h-28 wood-dark border-2 border-amber-900/80 rounded-t-full shadow-inner overflow-hidden flex justify-center items-center">
                         <div class="absolute inset-2 bg-black rounded-t-full"></div>
 
@@ -271,20 +271,20 @@
             </div>
 
             <!-- Chalet Main Body with Prominent Large Clock Dial -->
-            <div class="relative w-[380px] sm:w-[500px] md:w-[560px] wood-medium border-x-4 border-b-4 border-amber-950 rounded-b-xl shadow-2xl flex flex-col items-center justify-between p-4 sm:p-6 z-10">
+            <div class="relative w-[560px] wood-medium border-x-4 border-b-4 border-amber-950 rounded-b-xl shadow-2xl flex flex-col items-center justify-between p-6 z-10">
                 
                 <!-- Illuminated Windows -->
-                <div class="absolute top-6 left-6 sm:left-10 w-12 h-18 bg-amber-300 rounded-t-full border-2 border-amber-900 window-glow overflow-hidden flex flex-col justify-between">
+                <div class="absolute top-6 left-10 w-12 h-18 bg-amber-300 rounded-t-full border-2 border-amber-900 window-glow overflow-hidden flex flex-col justify-between">
                     <div class="w-full h-1/2 border-b border-amber-900/60"></div>
                     <div class="w-1/2 h-full border-r border-amber-900/60 mx-auto"></div>
                 </div>
-                <div class="absolute top-6 right-6 sm:right-10 w-12 h-18 bg-amber-300 rounded-t-full border-2 border-amber-900 window-glow overflow-hidden flex flex-col justify-between">
+                <div class="absolute top-6 right-10 w-12 h-18 bg-amber-300 rounded-t-full border-2 border-amber-900 window-glow overflow-hidden flex flex-col justify-between">
                     <div class="w-full h-1/2 border-b border-amber-900/60"></div>
                     <div class="w-1/2 h-full border-r border-amber-900/60 mx-auto"></div>
                 </div>
 
                 <!-- Left Side: Animated Waterwheel -->
-                <div class="absolute -left-10 sm:-left-12 bottom-8 w-20 h-32 flex flex-col items-center justify-end">
+                <div class="absolute -left-12 bottom-8 w-20 h-32 flex flex-col items-center justify-end">
                     <svg class="absolute top-0 left-4 w-5 h-20 opacity-75" viewBox="0 0 20 60">
                         <path d="M 10 0 Q 15 30 10 60" stroke="#38bdf8" stroke-width="5" fill="none" stroke-dasharray="8 4" class="animate-pulse"/>
                     </svg>
@@ -308,7 +308,7 @@
                 </div>
 
                 <!-- Right Side: Animated Woodcutter -->
-                <div id="woodcutter" class="chopping-active absolute -right-12 sm:-right-14 bottom-6 flex flex-col items-center">
+                <div id="woodcutter" class="chopping-active absolute -right-14 bottom-6 flex flex-col items-center">
                     <svg class="w-16 h-24 filter drop-shadow" viewBox="0 0 60 80">
                         <rect x="25" y="55" width="20" height="18" fill="#451a03" rx="2"/>
                         <circle cx="20" cy="20" r="7" fill="#fef08a"/>
@@ -324,7 +324,7 @@
                 </div>
 
                 <!-- HUGE CLOCK DIAL (Occupying ~50% visual width/space) -->
-                <div class="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 my-4 rounded-full bg-amber-50 border-[12px] sm:border-[16px] border-amber-950 shadow-[inset_0_6px_16px_rgba(0,0,0,0.7)] flex items-center justify-center filter drop-shadow-xl">
+                <div class="relative w-96 h-96 my-4 rounded-full bg-amber-50 border-[16px] border-amber-950 shadow-[inset_0_6px_16px_rgba(0,0,0,0.7)] flex items-center justify-center filter drop-shadow-xl">
                     
                     <!-- Scalable SVG Dial & Hands -->
                     <svg id="clockFaceSVG" class="w-full h-full" viewBox="0 0 300 300">
@@ -339,7 +339,7 @@
                         </g>
 
                         <!-- Roman Numerals Group (Hidden by default, Arabic shown) -->
-                        <g id="romanNumerals" class="hidden fill-[#381a08] font-serif font-black text-[22px] sm:text-[24px]" text-anchor="middle" dominant-baseline="central">
+                        <g id="romanNumerals" class="hidden fill-[#381a08] font-serif font-black text-[24px]" text-anchor="middle" dominant-baseline="central">
                             <text x="150" y="38">XII</text>
                             <text x="208" y="53">I</text>
                             <text x="248" y="93">II</text>
@@ -355,7 +355,7 @@
                         </g>
 
                         <!-- Standard Arabic Numerals Group (Shown by default) -->
-                        <g id="arabicNumerals" class="fill-[#381a08] font-sans font-black text-[24px] sm:text-[26px]" text-anchor="middle" dominant-baseline="central">
+                        <g id="arabicNumerals" class="fill-[#381a08] font-sans font-black text-[26px]" text-anchor="middle" dominant-baseline="central">
                             <text x="150" y="38">12</text>
                             <text x="208" y="53">1</text>
                             <text x="248" y="93">2</text>
@@ -423,7 +423,7 @@
                 </div>
 
                 <!-- Pinecone Weights with Direct Seamless Chains -->
-                <div id="weightLeft" class="absolute top-0 left-20 sm:left-28 flex flex-col items-center pointer-events-auto cursor-pointer" title="Click to Wind Left Weight">
+                <div id="weightLeft" class="absolute top-0 left-28 flex flex-col items-center pointer-events-auto cursor-pointer" title="Click to Wind Left Weight">
                     <div id="chainLeft" class="w-1 h-16 border-l-2 border-dashed border-amber-300/80 transition-all duration-300"></div>
                     <div class="w-8 h-22">
                         <svg viewBox="0 0 40 100" class="w-full h-full filter drop-shadow-md">
@@ -433,7 +433,7 @@
                     </div>
                 </div>
 
-                <div id="weightRight" class="absolute top-0 right-20 sm:right-28 flex flex-col items-center pointer-events-auto cursor-pointer" title="Click to Wind Right Weight">
+                <div id="weightRight" class="absolute top-0 right-28 flex flex-col items-center pointer-events-auto cursor-pointer" title="Click to Wind Right Weight">
                     <div id="chainRight" class="w-1 h-10 border-l-2 border-dashed border-amber-300/80 transition-all duration-300"></div>
                     <div class="w-8 h-22">
                         <svg viewBox="0 0 40 100" class="w-full h-full filter drop-shadow-md">
@@ -450,7 +450,7 @@
     <!-- Settings Modal Control Panel Overlay -->
     <div id="controlModal" class="modal-overlay hidden-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         
-        <div class="modal-card w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-5 relative">
+        <div class="modal-card w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-5 relative max-h-[90vh] overflow-y-auto">
             
             <!-- Modal Header -->
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -949,6 +949,43 @@
             }
         }
 
+        // Responsive Scaling: Detect browser window/container size and resize clock to fit screen perfectly
+        function fitClockToScreen() {
+            const clock = document.getElementById('clockContainer');
+            const stage = document.getElementById('clockStage');
+            if (!clock || !stage) return;
+
+            const stageWidth = stage.clientWidth;
+            const stageHeight = stage.clientHeight;
+
+            if (stageWidth <= 0 || stageHeight <= 0) return;
+
+            // Full design envelope of the clock including waterwheel, woodcutter, pendulum, and hanging weights
+            const baseWidth = 690;
+            const baseHeight = 910;
+
+            // Safety padding so clock never touches screen edge
+            const paddingX = 16;
+            const paddingY = 12;
+
+            const availableW = Math.max(stageWidth - paddingX, 60);
+            const availableH = Math.max(stageHeight - paddingY, 60);
+
+            const scale = Math.min(availableW / baseWidth, availableH / baseHeight);
+
+            clock.style.transform = `scale(${scale})`;
+            clock.style.transformOrigin = 'center center';
+        }
+
+        window.addEventListener('resize', fitClockToScreen);
+        window.addEventListener('orientationchange', fitClockToScreen);
+        if (window.ResizeObserver) {
+            const resizeObserver = new ResizeObserver(() => fitClockToScreen());
+            resizeObserver.observe(document.body);
+            const stageElem = document.getElementById('clockStage');
+            if (stageElem) resizeObserver.observe(stageElem);
+        }
+
         // Main Animation Frame Tick
         function tick() {
             if (isRealTimeMode) {
@@ -961,7 +998,9 @@
             requestAnimationFrame(tick);
         }
 
+        window.addEventListener('DOMContentLoaded', fitClockToScreen);
         window.onload = function() {
+            fitClockToScreen();
             requestAnimationFrame(tick);
         };
     </script>

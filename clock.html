@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swiss Chalet Cuckoo Clock</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -20,9 +23,17 @@
         }
 
         /* Wood Textures and Gradients */
-        .wood-dark { background: linear-gradient(180deg, #3d2314 0%, #26140a 100%); }
-        .wood-medium { background: linear-gradient(180deg, #5c3a21 0%, #422815 100%); }
-        .wood-light { background: linear-gradient(180deg, #8a5a36 0%, #684123 100%); }
+        .wood-dark {
+            background: linear-gradient(180deg, #3d2314 0%, #26140a 100%);
+        }
+
+        .wood-medium {
+            background: linear-gradient(180deg, #5c3a21 0%, #422815 100%);
+        }
+
+        .wood-light {
+            background: linear-gradient(180deg, #8a5a36 0%, #684123 100%);
+        }
 
         /* Clock Animation Elements */
         .pendulum-container {
@@ -31,8 +42,13 @@
         }
 
         @keyframes swing {
-            0% { transform: rotate(-12deg); }
-            100% { transform: rotate(12deg); }
+            0% {
+                transform: rotate(-12deg);
+            }
+
+            100% {
+                transform: rotate(12deg);
+            }
         }
 
         .wheel-rotate {
@@ -41,8 +57,13 @@
         }
 
         @keyframes rotateWheel {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* Cuckoo Door & Bird Animations */
@@ -50,13 +71,19 @@
             transform-origin: left center;
             transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         .door-right {
             transform-origin: right center;
             transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .doors-open .door-left { transform: rotateY(-110deg); }
-        .doors-open .door-right { transform: rotateY(110deg); }
+        .doors-open .door-left {
+            transform: rotateY(-110deg);
+        }
+
+        .doors-open .door-right {
+            transform: rotateY(110deg);
+        }
 
         .cuckoo-bird {
             transform: translate(-50%, 20px) scale(0.2);
@@ -69,35 +96,63 @@
             opacity: 1;
         }
 
-        .cuckoo-singing .wing-left { animation: flapLeft 0.25s infinite alternate; }
-        .cuckoo-singing .wing-right { animation: flapRight 0.25s infinite alternate; }
-        .cuckoo-singing .beak { animation: openBeak 0.25s infinite alternate; }
+        .cuckoo-singing .wing-left {
+            animation: flapLeft 0.25s infinite alternate;
+        }
+
+        .cuckoo-singing .wing-right {
+            animation: flapRight 0.25s infinite alternate;
+        }
+
+        .cuckoo-singing .beak {
+            animation: openBeak 0.25s infinite alternate;
+        }
 
         @keyframes flapLeft {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(-35deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(-35deg);
+            }
         }
+
         @keyframes flapRight {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(35deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(35deg);
+            }
         }
+
         @keyframes openBeak {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(-20deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(-20deg);
+            }
         }
 
         /* Modal & Overlay */
         .modal-overlay {
             transition: opacity 0.3s ease, visibility 0.3s ease;
         }
+
         .modal-overlay.hidden-modal {
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
         }
+
         .modal-card {
             transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
         }
+
         .modal-overlay.hidden-modal .modal-card {
             transform: scale(0.9) translateY(20px);
             opacity: 0;
@@ -107,12 +162,19 @@
         .dancer-carousel {
             transition: transform 0.5s ease;
         }
+
         .dancing-active .dancer-carousel {
             animation: rotateDancers 4s linear infinite;
         }
+
         @keyframes rotateDancers {
-            from { transform: rotateY(0deg); }
-            to { transform: rotateY(360deg); }
+            from {
+                transform: rotateY(0deg);
+            }
+
+            to {
+                transform: rotateY(360deg);
+            }
         }
 
         /* Chimney Smoke Animation */
@@ -120,14 +182,26 @@
             animation: smokeRise 3s infinite linear;
             transform-origin: bottom center;
         }
+
         .smoke-puff-2 {
             animation: smokeRise 3.5s infinite linear 1.2s;
             transform-origin: bottom center;
         }
+
         @keyframes smokeRise {
-            0% { transform: translateY(0) scale(0.4); opacity: 0.8; }
-            50% { opacity: 0.5; }
-            100% { transform: translateY(-40px) scale(1.8); opacity: 0; }
+            0% {
+                transform: translateY(0) scale(0.4);
+                opacity: 0.8;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: translateY(-40px) scale(1.8);
+                opacity: 0;
+            }
         }
 
         /* Woodcutter Chopping Animation */
@@ -135,9 +209,15 @@
             animation: chopWood 0.8s ease-in-out infinite alternate;
             transform-origin: 35px 25px;
         }
+
         @keyframes chopWood {
-            0% { transform: rotate(-35deg); }
-            100% { transform: rotate(25deg); }
+            0% {
+                transform: rotate(-35deg);
+            }
+
+            100% {
+                transform: rotate(25deg);
+            }
         }
 
         /* Chalet Window Glow */
@@ -145,17 +225,27 @@
             box-shadow: 0 0 15px rgba(251, 191, 36, 0.7);
             animation: candleFlicker 4s ease-in-out infinite alternate;
         }
+
         @keyframes candleFlicker {
-            0% { opacity: 0.85; }
-            50% { opacity: 1; }
-            100% { opacity: 0.75; }
+            0% {
+                opacity: 0.85;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.75;
+            }
         }
 
-        /* Stepless Time Slider (無段設計) */
+        /* Stepless Time Slider */
         .time-slider {
             background: linear-gradient(to right, #1e293b 0%, #78350f 50%, #1e293b 100%);
             border: 1px solid #334155;
         }
+
         .time-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -164,26 +254,30 @@
             border-radius: 50%;
             background: radial-gradient(circle at 40% 35%, #fcd34d, #d97706 60%, #92400e);
             border: 2px solid #fef3c7;
-            box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0,0,0,0.5);
+            box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
             cursor: pointer;
             transition: box-shadow 0.2s;
         }
+
         .time-slider::-webkit-slider-thumb:hover {
-            box-shadow: 0 0 18px rgba(217, 119, 6, 0.9), 0 2px 8px rgba(0,0,0,0.7);
+            box-shadow: 0 0 18px rgba(217, 119, 6, 0.9), 0 2px 8px rgba(0, 0, 0, 0.7);
         }
+
         .time-slider::-moz-range-thumb {
             width: 22px;
             height: 22px;
             border-radius: 50%;
             background: radial-gradient(circle at 40% 35%, #fcd34d, #d97706 60%, #92400e);
             border: 2px solid #fef3c7;
-            box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0,0,0,0.5);
+            box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
             cursor: pointer;
         }
+
         .time-slider::-webkit-slider-runnable-track {
             height: 12px;
             border-radius: 9999px;
         }
+
         .time-slider::-moz-range-track {
             height: 12px;
             border-radius: 9999px;
@@ -192,6 +286,7 @@
         }
     </style>
 </head>
+
 <body class="flex flex-col h-screen overflow-hidden items-center justify-between p-2 sm:p-4 relative">
 
     <!-- Top Bar with Audio Enable and Gear Control Icon -->
@@ -199,41 +294,53 @@
         <div class="flex items-center gap-3">
             <div class="p-2 sm:p-2.5 bg-amber-900/40 rounded-xl border border-amber-600/30 text-amber-400 shadow-lg">
                 <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
             <div>
                 <h1 class="text-lg sm:text-2xl font-bold cinzel text-amber-200 tracking-wide">Black Forest Chalet</h1>
-                <p class="text-[9px] sm:text-xs text-amber-400/80 tracking-wider uppercase font-semibold">Grand Cuckoo Master Edition</p>
+                <p class="text-[9px] sm:text-xs text-amber-400/80 tracking-wider uppercase font-semibold">Grand Cuckoo
+                    Master Edition</p>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
-            <button id="enableAudioBtn" class="flex items-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl transition shadow-md">
+            <button id="enableAudioBtn"
+                class="flex items-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl transition shadow-md">
                 <svg id="audioIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z">
+                    </path>
                 </svg>
                 <span id="audioBtnText" class="hidden sm:inline">Enable Sound</span>
             </button>
 
             <!-- Floating Settings Gear Button -->
-            <button id="openSettingsBtn" title="Open Settings Panel" class="p-2.5 sm:p-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold rounded-2xl shadow-2xl transition-all border border-amber-400/50 flex items-center justify-center group">
-                <svg class="w-6 h-6 sm:w-7 sm:h-7 transform group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <button id="openSettingsBtn" title="Open Settings Panel"
+                class="p-2.5 sm:p-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold rounded-2xl shadow-2xl transition-all border border-amber-400/50 flex items-center justify-center group">
+                <svg class="w-6 h-6 sm:w-7 sm:h-7 transform group-hover:rotate-90 transition-transform duration-500"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
             </button>
         </div>
     </header>
 
     <!-- Main Display Stage: Dynamically fitted to available viewport -->
-    <main id="clockStage" class="w-full flex-1 flex items-center justify-center overflow-hidden relative min-h-0 my-auto py-1">
-        
-        <div id="clockContainer" class="relative w-[580px] flex flex-col items-center select-none filter drop-shadow-[0_30px_50px_rgba(0,0,0,0.9)] shrink-0 transition-transform duration-75 ease-out">
-            
+    <main id="clockStage"
+        class="w-full flex-1 flex items-center justify-center overflow-hidden relative min-h-0 my-auto py-1">
+
+        <div id="clockContainer"
+            class="relative w-[580px] flex flex-col items-center select-none filter drop-shadow-[0_30px_50px_rgba(0,0,0,0.9)] shrink-0 transition-transform duration-75 ease-out">
+
             <!-- Roof Gable, Chimney & Dancers Terrace -->
             <div class="relative w-full h-52 z-20">
-                
+
                 <!-- Chimney with Smoke -->
                 <div class="absolute top-2 right-24 z-10 flex flex-col items-center pointer-events-none">
                     <div class="smoke-puff w-5 h-5 rounded-full bg-slate-300/40 blur-xs mb-[-10px]"></div>
@@ -245,65 +352,74 @@
 
                 <!-- Roof Overhang SVG -->
                 <svg class="w-full h-full filter drop-shadow-lg" viewBox="0 0 580 200">
-                    <polygon points="290,10 15,160 565,160" fill="#2d170b" stroke="#1a0d06" stroke-width="5"/>
-                    <path d="M 15,160 Q 290,20 565,160 L 575,150 Q 290,5 5,150 Z" fill="#6a3e1b"/>
-                    <path d="M 35,160 Q 290,32 545,160" fill="none" stroke="#d97706" stroke-width="4" stroke-dasharray="8 8"/>
-                    <polygon points="290,0 278,28 302,28" fill="#d97706"/>
-                    <circle cx="290" cy="30" r="8" fill="#b45309"/>
+                    <polygon points="290,10 15,160 565,160" fill="#2d170b" stroke="#1a0d06" stroke-width="5" />
+                    <path d="M 15,160 Q 290,20 565,160 L 575,150 Q 290,5 5,150 Z" fill="#6a3e1b" />
+                    <path d="M 35,160 Q 290,32 545,160" fill="none" stroke="#d97706" stroke-width="4"
+                        stroke-dasharray="8 8" />
+                    <polygon points="290,0 278,28 302,28" fill="#d97706" />
+                    <circle cx="290" cy="30" r="8" fill="#b45309" />
                 </svg>
 
                 <!-- Upper Balcony with Animated Dancing Couples -->
-                <div id="dancingBalcony" class="absolute top-[58px] left-1/2 -translate-x-1/2 w-64 h-14 z-20 flex justify-center items-end overflow-hidden">
-                    <div class="w-56 h-10 wood-dark border-t-2 border-amber-600/60 rounded-t-lg flex items-center justify-around px-2 relative shadow-md">
-                        <div class="absolute inset-x-0 bottom-0 h-4 bg-amber-950/80 border-t border-amber-700/50 flex justify-between px-2">
+                <div id="dancingBalcony"
+                    class="absolute top-[58px] left-1/2 -translate-x-1/2 w-64 h-14 z-20 flex justify-center items-end overflow-hidden">
+                    <div
+                        class="w-56 h-10 wood-dark border-t-2 border-amber-600/60 rounded-t-lg flex items-center justify-around px-2 relative shadow-md">
+                        <div
+                            class="absolute inset-x-0 bottom-0 h-4 bg-amber-950/80 border-t border-amber-700/50 flex justify-between px-2">
                             <span class="w-1 h-2.5 bg-amber-500 rounded"></span>
                             <span class="w-1 h-2.5 bg-amber-500 rounded"></span>
                             <span class="w-1 h-2.5 bg-amber-500 rounded"></span>
                             <span class="w-1 h-2.5 bg-amber-500 rounded"></span>
                             <span class="w-1 h-2.5 bg-amber-500 rounded"></span>
                         </div>
-                        
+
                         <div class="dancer-carousel flex justify-around w-full z-10 pb-1">
                             <svg class="w-6 h-7 text-amber-400" viewBox="0 0 20 24" fill="currentColor">
-                                <circle cx="10" cy="5" r="3" fill="#fef08a"/>
-                                <path d="M5 22 L10 10 L15 22 Z" fill="#ef4444"/>
+                                <circle cx="10" cy="5" r="3" fill="#fef08a" />
+                                <path d="M5 22 L10 10 L15 22 Z" fill="#ef4444" />
                             </svg>
                             <svg class="w-6 h-7 text-amber-400" viewBox="0 0 20 24" fill="currentColor">
-                                <circle cx="10" cy="5" r="3" fill="#fef08a"/>
-                                <path d="M4 22 L10 10 L16 22 Z" fill="#3b82f6"/>
+                                <circle cx="10" cy="5" r="3" fill="#fef08a" />
+                                <path d="M4 22 L10 10 L16 22 Z" fill="#3b82f6" />
                             </svg>
                             <svg class="w-6 h-7 text-amber-400" viewBox="0 0 20 24" fill="currentColor">
-                                <circle cx="10" cy="5" r="3" fill="#fef08a"/>
-                                <path d="M5 22 L10 10 L15 22 Z" fill="#10b981"/>
+                                <circle cx="10" cy="5" r="3" fill="#fef08a" />
+                                <path d="M5 22 L10 10 L15 22 Z" fill="#10b981" />
                             </svg>
                         </div>
                     </div>
                 </div>
 
                 <!-- Cuckoo Door House Apex -->
-                <div id="cuckooHouse" class="absolute top-[102px] left-1/2 -translate-x-1/2 w-32 h-32 z-30 flex flex-col items-center">
-                    <div class="relative w-24 h-28 wood-dark border-2 border-amber-900/80 rounded-t-full shadow-inner overflow-hidden flex justify-center items-center">
+                <div id="cuckooHouse"
+                    class="absolute top-[102px] left-1/2 -translate-x-1/2 w-32 h-32 z-30 flex flex-col items-center">
+                    <div
+                        class="relative w-24 h-28 wood-dark border-2 border-amber-900/80 rounded-t-full shadow-inner overflow-hidden flex justify-center items-center">
                         <div class="absolute inset-2 bg-black rounded-t-full"></div>
 
                         <!-- Cuckoo Bird -->
-                        <div id="cuckooBird" class="cuckoo-bird absolute top-4 left-1/2 z-10 w-14 h-14 pointer-events-none">
+                        <div id="cuckooBird"
+                            class="cuckoo-bird absolute top-4 left-1/2 z-10 w-14 h-14 pointer-events-none">
                             <svg viewBox="0 0 100 100" class="w-full h-full filter drop-shadow">
-                                <ellipse cx="50" cy="55" rx="28" ry="20" fill="#d97706"/>
-                                <circle cx="35" cy="38" r="15" fill="#f59e0b"/>
-                                <circle cx="30" cy="35" r="3" fill="#000"/>
-                                <circle cx="29" cy="34" r="1" fill="#fff"/>
-                                <polygon points="22,38 10,42 22,46" fill="#f97316" class="beak origin-right"/>
-                                <ellipse cx="60" cy="52" rx="16" ry="8" fill="#b45309" class="wing-left origin-right"/>
-                                <ellipse cx="50" cy="50" rx="14" ry="7" fill="#92400e" class="wing-right origin-left"/>
-                                <polygon points="75,55 95,48 92,62" fill="#78350f"/>
+                                <ellipse cx="50" cy="55" rx="28" ry="20" fill="#d97706" />
+                                <circle cx="35" cy="38" r="15" fill="#f59e0b" />
+                                <circle cx="30" cy="35" r="3" fill="#000" />
+                                <circle cx="29" cy="34" r="1" fill="#fff" />
+                                <polygon points="22,38 10,42 22,46" fill="#f97316" class="beak origin-right" />
+                                <ellipse cx="60" cy="52" rx="16" ry="8" fill="#b45309" class="wing-left origin-right" />
+                                <ellipse cx="50" cy="50" rx="14" ry="7" fill="#92400e" class="wing-right origin-left" />
+                                <polygon points="75,55 95,48 92,62" fill="#78350f" />
                             </svg>
                         </div>
 
                         <!-- Left & Right Doors -->
-                        <div id="doorLeft" class="door-left absolute left-0 top-0 w-1/2 h-full wood-light border-r border-amber-950/60 shadow-md flex items-center justify-end pr-0.5">
+                        <div id="doorLeft"
+                            class="door-left absolute left-0 top-0 w-1/2 h-full wood-light border-r border-amber-950/60 shadow-md flex items-center justify-end pr-0.5">
                             <div class="w-1.5 h-4 bg-amber-400 rounded-sm"></div>
                         </div>
-                        <div id="doorRight" class="door-right absolute right-0 top-0 w-1/2 h-full wood-light border-l border-amber-950/60 shadow-md flex items-center justify-start pl-0.5">
+                        <div id="doorRight"
+                            class="door-right absolute right-0 top-0 w-1/2 h-full wood-light border-l border-amber-950/60 shadow-md flex items-center justify-start pl-0.5">
                             <div class="w-1.5 h-4 bg-amber-400 rounded-sm"></div>
                         </div>
                     </div>
@@ -311,14 +427,17 @@
             </div>
 
             <!-- Chalet Main Body with Prominent Large Clock Dial -->
-            <div class="relative w-[560px] wood-medium border-x-4 border-b-4 border-amber-950 rounded-b-xl shadow-2xl flex flex-col items-center justify-between p-6 z-10">
-                
+            <div
+                class="relative w-[560px] wood-medium border-x-4 border-b-4 border-amber-950 rounded-b-xl shadow-2xl flex flex-col items-center justify-between p-6 z-10">
+
                 <!-- Illuminated Windows -->
-                <div class="absolute top-6 left-10 w-12 h-18 bg-amber-300 rounded-t-full border-2 border-amber-900 window-glow overflow-hidden flex flex-col justify-between">
+                <div
+                    class="absolute top-6 left-10 w-12 h-18 bg-amber-300 rounded-t-full border-2 border-amber-900 window-glow overflow-hidden flex flex-col justify-between">
                     <div class="w-full h-1/2 border-b border-amber-900/60"></div>
                     <div class="w-1/2 h-full border-r border-amber-900/60 mx-auto"></div>
                 </div>
-                <div class="absolute top-6 right-10 w-12 h-18 bg-amber-300 rounded-t-full border-2 border-amber-900 window-glow overflow-hidden flex flex-col justify-between">
+                <div
+                    class="absolute top-6 right-10 w-12 h-18 bg-amber-300 rounded-t-full border-2 border-amber-900 window-glow overflow-hidden flex flex-col justify-between">
                     <div class="w-full h-1/2 border-b border-amber-900/60"></div>
                     <div class="w-1/2 h-full border-r border-amber-900/60 mx-auto"></div>
                 </div>
@@ -326,22 +445,23 @@
                 <!-- Left Side: Animated Waterwheel -->
                 <div class="absolute -left-12 bottom-8 w-20 h-32 flex flex-col items-center justify-end">
                     <svg class="absolute top-0 left-4 w-5 h-20 opacity-75" viewBox="0 0 20 60">
-                        <path d="M 10 0 Q 15 30 10 60" stroke="#38bdf8" stroke-width="5" fill="none" stroke-dasharray="8 4" class="animate-pulse"/>
+                        <path d="M 10 0 Q 15 30 10 60" stroke="#38bdf8" stroke-width="5" fill="none"
+                            stroke-dasharray="8 4" class="animate-pulse" />
                     </svg>
                     <div id="waterWheel" class="wheel-rotate w-20 h-20 relative">
                         <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
-                            <circle cx="50" cy="50" r="45" fill="none" stroke="#451a03" stroke-width="8"/>
-                            <circle cx="50" cy="50" r="15" fill="#78350f"/>
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="#451a03" stroke-width="8" />
+                            <circle cx="50" cy="50" r="15" fill="#78350f" />
                             <g stroke="#78350f" stroke-width="4">
-                                <line x1="50" y1="5" x2="50" y2="95"/>
-                                <line x1="5" y1="50" x2="95" y2="50"/>
-                                <line x1="18" y1="18" x2="82" y2="82"/>
-                                <line x1="18" y1="82" x2="82" y2="18"/>
+                                <line x1="50" y1="5" x2="50" y2="95" />
+                                <line x1="5" y1="50" x2="95" y2="50" />
+                                <line x1="18" y1="18" x2="82" y2="82" />
+                                <line x1="18" y1="82" x2="82" y2="18" />
                             </g>
-                            <rect x="44" y="0" width="12" height="10" fill="#b45309" rx="2"/>
-                            <rect x="44" y="90" width="12" height="10" fill="#b45309" rx="2"/>
-                            <rect x="0" y="44" width="10" height="12" fill="#b45309" rx="2"/>
-                            <rect x="90" y="44" width="10" height="12" fill="#b45309" rx="2"/>
+                            <rect x="44" y="0" width="12" height="10" fill="#b45309" rx="2" />
+                            <rect x="44" y="90" width="12" height="10" fill="#b45309" rx="2" />
+                            <rect x="0" y="44" width="10" height="12" fill="#b45309" rx="2" />
+                            <rect x="90" y="44" width="10" height="12" fill="#b45309" rx="2" />
                         </svg>
                     </div>
                     <div class="w-24 h-2.5 bg-amber-950 rounded-full mt-1"></div>
@@ -350,28 +470,32 @@
                 <!-- Right Side: Animated Woodcutter -->
                 <div id="woodcutter" class="chopping-active absolute -right-14 bottom-6 flex flex-col items-center">
                     <svg class="w-16 h-24 filter drop-shadow" viewBox="0 0 60 80">
-                        <rect x="25" y="55" width="20" height="18" fill="#451a03" rx="2"/>
-                        <circle cx="20" cy="20" r="7" fill="#fef08a"/>
-                        <rect x="14" y="27" width="14" height="22" fill="#b91c1c" rx="3"/>
-                        <rect x="12" y="48" width="8" height="18" fill="#1e3a8a"/>
-                        <rect x="20" y="48" width="8" height="18" fill="#1e3a8a"/>
+                        <rect x="25" y="55" width="20" height="18" fill="#451a03" rx="2" />
+                        <circle cx="20" cy="20" r="7" fill="#fef08a" />
+                        <rect x="14" y="27" width="14" height="22" fill="#b91c1c" rx="3" />
+                        <rect x="12" y="48" width="8" height="18" fill="#1e3a8a" />
+                        <rect x="20" y="48" width="8" height="18" fill="#1e3a8a" />
                         <g class="woodcutter-arm">
-                            <line x1="25" y1="30" x2="42" y2="40" stroke="#fef08a" stroke-width="5" stroke-linecap="round"/>
-                            <line x1="38" y1="20" x2="45" y2="52" stroke="#78350f" stroke-width="3"/>
-                            <polygon points="42,42 54,38 48,50" fill="#94a3b8"/>
+                            <line x1="25" y1="30" x2="42" y2="40" stroke="#fef08a" stroke-width="5"
+                                stroke-linecap="round" />
+                            <line x1="38" y1="20" x2="45" y2="52" stroke="#78350f" stroke-width="3" />
+                            <polygon points="42,42 54,38 48,50" fill="#94a3b8" />
                         </g>
                     </svg>
                 </div>
 
                 <!-- HUGE CLOCK DIAL (Occupying ~50% visual width/space) -->
-                <div class="relative w-96 h-96 my-4 rounded-full bg-amber-50 border-[16px] border-amber-950 shadow-[inset_0_6px_16px_rgba(0,0,0,0.7)] flex items-center justify-center filter drop-shadow-xl">
-                    
+                <div
+                    class="relative w-96 h-96 my-4 rounded-full bg-amber-50 border-[16px] border-amber-950 shadow-[inset_0_6px_16px_rgba(0,0,0,0.7)] flex items-center justify-center filter drop-shadow-xl">
+
                     <!-- Scalable SVG Dial & Hands -->
                     <svg id="clockFaceSVG" class="w-full h-full" viewBox="0 0 300 300">
                         <!-- Outer Decorative Rings -->
-                        <circle cx="150" cy="150" r="142" fill="none" stroke="#d97706" stroke-width="3"/>
-                        <circle cx="150" cy="150" r="136" fill="none" stroke="#78350f" stroke-width="1.5" stroke-dasharray="4 4"/>
-                        <circle cx="150" cy="150" r="95" fill="none" stroke="#b45309" stroke-width="1" stroke-dasharray="2 2"/>
+                        <circle cx="150" cy="150" r="142" fill="none" stroke="#d97706" stroke-width="3" />
+                        <circle cx="150" cy="150" r="136" fill="none" stroke="#78350f" stroke-width="1.5"
+                            stroke-dasharray="4 4" />
+                        <circle cx="150" cy="150" r="95" fill="none" stroke="#b45309" stroke-width="1"
+                            stroke-dasharray="2 2" />
 
                         <!-- Tick Marks for Minutes -->
                         <g stroke="#451a03" stroke-width="2" opacity="0.6">
@@ -379,7 +503,8 @@
                         </g>
 
                         <!-- Roman Numerals Group (Hidden by default, Arabic shown) -->
-                        <g id="romanNumerals" class="hidden fill-[#381a08] font-serif font-black text-[24px]" text-anchor="middle" dominant-baseline="central">
+                        <g id="romanNumerals" class="hidden fill-[#381a08] font-serif font-black text-[24px]"
+                            text-anchor="middle" dominant-baseline="central">
                             <text x="150" y="38">XII</text>
                             <text x="208" y="53">I</text>
                             <text x="248" y="93">II</text>
@@ -395,7 +520,8 @@
                         </g>
 
                         <!-- Standard Arabic Numerals Group (Shown by default) -->
-                        <g id="arabicNumerals" class="fill-[#381a08] font-sans font-black text-[26px]" text-anchor="middle" dominant-baseline="central">
+                        <g id="arabicNumerals" class="fill-[#381a08] font-sans font-black text-[26px]"
+                            text-anchor="middle" dominant-baseline="central">
                             <text x="150" y="38">12</text>
                             <text x="208" y="53">1</text>
                             <text x="248" y="93">2</text>
@@ -413,31 +539,35 @@
                         <!-- Hour Hand Group -->
                         <g id="hourHandGroup" transform="rotate(0 150 150)">
                             <!-- Ornate Carved Hour Hand -->
-                            <path d="M 145 150 L 147 80 C 140 75 140 60 150 50 C 160 60 160 75 153 80 L 155 150 Z" fill="#1e1008" stroke="#d97706" stroke-width="1.5"/>
-                            <circle cx="150" cy="65" r="4" fill="#fef08a"/>
+                            <path d="M 145 150 L 147 80 C 140 75 140 60 150 50 C 160 60 160 75 153 80 L 155 150 Z"
+                                fill="#1e1008" stroke="#d97706" stroke-width="1.5" />
+                            <circle cx="150" cy="65" r="4" fill="#fef08a" />
                         </g>
 
                         <!-- Minute Hand Group -->
                         <g id="minuteHandGroup" transform="rotate(0 150 150)">
                             <!-- Ornate Carved Minute Hand -->
-                            <path d="M 146 150 L 148 45 C 142 40 142 28 150 20 C 158 28 158 40 152 45 L 154 150 Z" fill="#1e1008" stroke="#d97706" stroke-width="1.5"/>
-                            <circle cx="150" cy="33" r="3" fill="#fef08a"/>
+                            <path d="M 146 150 L 148 45 C 142 40 142 28 150 20 C 158 28 158 40 152 45 L 154 150 Z"
+                                fill="#1e1008" stroke="#d97706" stroke-width="1.5" />
+                            <circle cx="150" cy="33" r="3" fill="#fef08a" />
                         </g>
 
                         <!-- Second Hand Group -->
                         <g id="secondHandGroup" transform="rotate(0 150 150)">
-                            <line x1="150" y1="175" x2="150" y2="22" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
-                            <circle cx="150" cy="150" r="5" fill="#dc2626"/>
+                            <line x1="150" y1="175" x2="150" y2="22" stroke="#dc2626" stroke-width="3"
+                                stroke-linecap="round" />
+                            <circle cx="150" cy="150" r="5" fill="#dc2626" />
                         </g>
 
                         <!-- Center Brass Cap -->
-                        <circle cx="150" cy="150" r="9" fill="#d97706" stroke="#78350f" stroke-width="2"/>
-                        <circle cx="150" cy="150" r="4" fill="#fef08a"/>
+                        <circle cx="150" cy="150" r="9" fill="#d97706" stroke="#78350f" stroke-width="2" />
+                        <circle cx="150" cy="150" r="4" fill="#fef08a" />
                     </svg>
                 </div>
 
                 <!-- Chalet Bottom Carved Railing -->
-                <div class="w-full h-7 wood-dark border-t-2 border-amber-700/50 rounded flex items-center justify-around px-4">
+                <div
+                    class="w-full h-7 wood-dark border-t-2 border-amber-700/50 rounded flex items-center justify-around px-4">
                     <div class="w-3 h-4 bg-amber-600 rounded-t"></div>
                     <div class="w-3 h-4 bg-amber-600 rounded-t"></div>
                     <div class="w-3 h-4 bg-amber-600 rounded-t"></div>
@@ -450,35 +580,50 @@
 
             <!-- Hanging Elements: Chains, Pendulum, Pinecone Weights -->
             <div class="relative w-full h-60 flex justify-center -mt-2 pointer-events-none">
-                
+
                 <!-- Pendulum -->
                 <div id="pendulum" class="pendulum-container absolute top-0 flex flex-col items-center">
                     <div class="w-1.5 h-40 bg-gradient-to-b from-amber-700 to-amber-500 shadow"></div>
                     <div class="w-14 h-16 relative -mt-1">
                         <svg viewBox="0 0 100 120" class="w-full h-full filter drop-shadow-lg">
-                            <path d="M 50 0 C 80 30 100 60 50 120 C 0 60 20 30 50 0 Z" fill="#92400e" stroke="#f59e0b" stroke-width="4"/>
-                            <path d="M 50 10 L 50 110 M 50 40 L 80 20 M 50 60 L 85 45 M 50 80 L 75 75 M 50 40 L 20 20 M 50 60 L 15 45 M 50 80 L 25 75" stroke="#f59e0b" stroke-width="2" fill="none"/>
+                            <path d="M 50 0 C 80 30 100 60 50 120 C 0 60 20 30 50 0 Z" fill="#92400e" stroke="#f59e0b"
+                                stroke-width="4" />
+                            <path
+                                d="M 50 10 L 50 110 M 50 40 L 80 20 M 50 60 L 85 45 M 50 80 L 75 75 M 50 40 L 20 20 M 50 60 L 15 45 M 50 80 L 25 75"
+                                stroke="#f59e0b" stroke-width="2" fill="none" />
                         </svg>
                     </div>
                 </div>
 
                 <!-- Pinecone Weights with Direct Seamless Chains -->
-                <div id="weightLeft" class="absolute top-0 left-28 flex flex-col items-center pointer-events-auto cursor-pointer" title="Click to Wind Left Weight">
-                    <div id="chainLeft" class="w-1 h-16 border-l-2 border-dashed border-amber-300/80 transition-all duration-300"></div>
+                <div id="weightLeft"
+                    class="absolute top-0 left-28 flex flex-col items-center pointer-events-auto cursor-pointer"
+                    title="Click to Wind Left Weight">
+                    <div id="chainLeft"
+                        class="w-1 h-16 border-l-2 border-dashed border-amber-300/80 transition-all duration-300"></div>
                     <div class="w-8 h-22">
                         <svg viewBox="0 0 40 100" class="w-full h-full filter drop-shadow-md">
-                            <path d="M 20 0 Q 35 20 35 60 Q 35 90 20 100 Q 5 90 5 60 Q 5 20 20 0 Z" fill="#451a03" stroke="#92400e" stroke-width="2"/>
-                            <path d="M 10 20 C 20 30 30 20 30 20 M 8 35 C 20 50 32 35 32 35 M 7 55 C 20 70 33 55 33 55 M 10 75 C 20 85 30 75 30 75" stroke="#d97706" stroke-width="2" fill="none"/>
+                            <path d="M 20 0 Q 35 20 35 60 Q 35 90 20 100 Q 5 90 5 60 Q 5 20 20 0 Z" fill="#451a03"
+                                stroke="#92400e" stroke-width="2" />
+                            <path
+                                d="M 10 20 C 20 30 30 20 30 20 M 8 35 C 20 50 32 35 32 35 M 7 55 C 20 70 33 55 33 55 M 10 75 C 20 85 30 75 30 75"
+                                stroke="#d97706" stroke-width="2" fill="none" />
                         </svg>
                     </div>
                 </div>
 
-                <div id="weightRight" class="absolute top-0 right-28 flex flex-col items-center pointer-events-auto cursor-pointer" title="Click to Wind Right Weight">
-                    <div id="chainRight" class="w-1 h-10 border-l-2 border-dashed border-amber-300/80 transition-all duration-300"></div>
+                <div id="weightRight"
+                    class="absolute top-0 right-28 flex flex-col items-center pointer-events-auto cursor-pointer"
+                    title="Click to Wind Right Weight">
+                    <div id="chainRight"
+                        class="w-1 h-10 border-l-2 border-dashed border-amber-300/80 transition-all duration-300"></div>
                     <div class="w-8 h-22">
                         <svg viewBox="0 0 40 100" class="w-full h-full filter drop-shadow-md">
-                            <path d="M 20 0 Q 35 20 35 60 Q 35 90 20 100 Q 5 90 5 60 Q 5 20 20 0 Z" fill="#451a03" stroke="#92400e" stroke-width="2"/>
-                            <path d="M 10 20 C 20 30 30 20 30 20 M 8 35 C 20 50 32 35 32 35 M 7 55 C 20 70 33 55 33 55 M 10 75 C 20 85 30 75 30 75" stroke="#d97706" stroke-width="2" fill="none"/>
+                            <path d="M 20 0 Q 35 20 35 60 Q 35 90 20 100 Q 5 90 5 60 Q 5 20 20 0 Z" fill="#451a03"
+                                stroke="#92400e" stroke-width="2" />
+                            <path
+                                d="M 10 20 C 20 30 30 20 30 20 M 8 35 C 20 50 32 35 32 35 M 7 55 C 20 70 33 55 33 55 M 10 75 C 20 85 30 75 30 75"
+                                stroke="#d97706" stroke-width="2" fill="none" />
                         </svg>
                     </div>
                 </div>
@@ -488,32 +633,41 @@
     </main>
 
     <!-- Settings Modal Control Panel Overlay -->
-    <div id="controlModal" class="modal-overlay hidden-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        
-        <div class="modal-card w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-5 relative max-h-[90vh] overflow-y-auto">
-            
+    <div id="controlModal"
+        class="modal-overlay hidden-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+
+        <div
+            class="modal-card w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl flex flex-col gap-5 relative max-h-[90vh] overflow-y-auto">
+
             <!-- Modal Header -->
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div class="flex items-center gap-2">
                     <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                        </path>
                     </svg>
                     <h2 class="text-xl font-bold text-amber-200 cinzel">Clock Master Controls</h2>
                 </div>
-                <button id="closeSettingsBtn" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition">
+                <button id="closeSettingsBtn"
+                    class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
                     </svg>
                 </button>
             </div>
 
             <!-- Digital Clock Display in Modal -->
-            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center shadow-inner flex items-center justify-between px-6">
+            <div
+                class="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center shadow-inner flex items-center justify-between px-6">
                 <div>
                     <div class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Simulated Time</div>
-                    <div id="digitalClock" class="text-2xl font-mono font-bold text-amber-400 tracking-wider">12:00:00 PM</div>
+                    <div id="digitalClock" class="text-2xl font-mono font-bold text-amber-400 tracking-wider">12:00:00
+                        PM</div>
                 </div>
-                <div id="statusBadge" class="px-2.5 py-1 text-xs rounded-lg font-medium bg-emerald-950 text-emerald-400 border border-emerald-800/50 flex items-center gap-1.5">
+                <div id="statusBadge"
+                    class="px-2.5 py-1 text-xs rounded-lg font-medium bg-emerald-950 text-emerald-400 border border-emerald-800/50 flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span id="statusText">Real Time</span>
                 </div>
@@ -521,14 +675,18 @@
 
             <!-- Action Buttons -->
             <div class="grid grid-cols-2 gap-3">
-                <button id="triggerCuckooBtn" class="flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition active:scale-95">
+                <button id="triggerCuckooBtn"
+                    class="flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition active:scale-95">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z">
+                        </path>
                     </svg>
                     Trigger Cuckoo
                 </button>
 
-                <button id="toggleTimeModeBtn" class="flex items-center justify-center gap-2 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm rounded-xl transition active:scale-95 border border-slate-700">
+                <button id="toggleTimeModeBtn"
+                    class="flex items-center justify-center gap-2 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm rounded-xl transition active:scale-95 border border-slate-700">
                     <span id="timeModeText">Manual Mode</span>
                 </button>
             </div>
@@ -536,22 +694,29 @@
             <!-- Clock Customization & Dial Numerals Switcher -->
             <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3">
                 <div class="text-xs font-bold text-amber-300 uppercase tracking-wider mb-1">Clock Customizations</div>
-                
+
                 <!-- Numeral Style Toggle -->
                 <div class="flex items-center justify-between text-sm">
                     <span class="text-slate-300 font-medium">Dial Numeral Style</span>
                     <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
-                        <button id="numeralArabicBtn" class="px-3 py-1 rounded-lg font-bold bg-amber-600 text-slate-950 transition">1, 2, 3 (Arabic)</button>
-                        <button id="numeralRomanBtn" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">I, II, III (Roman)</button>
+                        <button id="numeralArabicBtn"
+                            class="px-3 py-1 rounded-lg font-bold bg-amber-600 text-slate-950 transition">1, 2, 3
+                            (Arabic)</button>
+                        <button id="numeralRomanBtn"
+                            class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">I, II, III
+                            (Roman)</button>
                     </div>
                 </div>
 
                 <!-- Wind Weights Button -->
                 <div class="flex items-center justify-between text-sm pt-2 border-t border-slate-800">
                     <span class="text-slate-300 font-medium">Pinecone Weights</span>
-                    <button id="windWeightsBtn" class="px-3 py-1.5 bg-amber-900/60 hover:bg-amber-800/80 text-amber-300 text-xs font-semibold rounded-xl border border-amber-700/50 transition flex items-center gap-1.5">
+                    <button id="windWeightsBtn"
+                        class="px-3 py-1.5 bg-amber-900/60 hover:bg-amber-800/80 text-amber-300 text-xs font-semibold rounded-xl border border-amber-700/50 transition flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
                         </svg>
                         Rewind Weights
                     </button>
@@ -566,7 +731,8 @@
                         <span id="manualHourVal" class="text-amber-400 font-bold font-mono text-sm">12:00 AM</span>
                     </div>
                     <div class="relative mt-1 mb-2">
-                        <input id="hourSlider" type="range" min="0" max="719" step="1" value="0" class="time-slider w-full h-3 rounded-full appearance-none cursor-pointer">
+                        <input id="hourSlider" type="range" min="0" max="719" step="1" value="0"
+                            class="time-slider w-full h-3 rounded-full appearance-none cursor-pointer">
                         <!-- Hour tick marks -->
                         <div class="flex justify-between px-[6px] mt-1.5">
                             <span class="text-[8px] text-slate-600">12</span>
@@ -588,8 +754,10 @@
                     <div class="flex items-center justify-between mt-1">
                         <span class="text-[10px] text-slate-500 uppercase tracking-wider">Period</span>
                         <div class="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs">
-                            <button id="amBtn" class="px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all">AM</button>
-                            <button id="pmBtn" class="px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all">PM</button>
+                            <button id="amBtn"
+                                class="px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all">AM</button>
+                            <button id="pmBtn"
+                                class="px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all">PM</button>
                         </div>
                     </div>
                 </div>
@@ -599,7 +767,8 @@
                         <span>Speed Multiplier:</span>
                         <span id="speedVal" class="text-amber-400 font-bold">1x (Realtime)</span>
                     </div>
-                    <input id="speedSlider" type="range" min="1" max="60" step="1" value="1" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    <input id="speedSlider" type="range" min="1" max="60" step="1" value="1"
+                        class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
             </div>
 
@@ -609,7 +778,9 @@
                     <span class="text-slate-300 font-medium">Tick-Tock Sound</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="tickTockToggle" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                        <div
+                            class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
+                        </div>
                     </label>
                 </div>
 
@@ -617,7 +788,9 @@
                     <span class="text-slate-300 font-medium">Hourly Cuckoo Auto-Chime</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="autoChimeToggle" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                        <div
+                            class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
+                        </div>
                     </label>
                 </div>
 
@@ -628,7 +801,9 @@
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="autoRewindToggle" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                        <div
+                            class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
+                        </div>
                     </label>
                 </div>
 
@@ -637,7 +812,8 @@
                         <span>Audio Volume</span>
                         <span id="volumeVal" class="text-slate-200">80%</span>
                     </div>
-                    <input id="volumeSlider" type="range" min="0" max="100" value="80" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    <input id="volumeSlider" type="range" min="0" max="100" value="80"
+                        class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
                 </div>
             </div>
 
@@ -687,7 +863,7 @@
 
             playTickTock(isTick) {
                 if (!this.enabled || !this.tickEnabled || !this.ctx || this.ctx.state !== 'running') return;
-                
+
                 const now = this.ctx.currentTime;
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
@@ -755,7 +931,7 @@
                 const now = this.ctx.currentTime;
                 const note1Freq = 659.25; // E5
                 const note2Freq = 523.25; // C5
-                
+
                 const note1Duration = 0.22;
                 const note2Duration = 0.38;
                 const gap = 0.05;
@@ -857,7 +1033,7 @@
             isRealTimeMode = !isRealTimeMode;
             const statusBadge = document.getElementById('statusBadge');
             const statusText = document.getElementById('statusText');
-            
+
             if (isRealTimeMode) {
                 timeModeText.textContent = "Manual Mode";
                 manualControls.classList.add('hidden');
@@ -1026,7 +1202,7 @@
             }
 
             // Lower Weights as clock ticks (Calibrated to 24-Hour Cycle)
-            const dropRatePerSec = (120 / 86400) * speedMultiplier; 
+            const dropRatePerSec = (120 / 86400) * speedMultiplier;
             weightDropAmount += dropRatePerSec;
 
             if (weightDropAmount >= 120) {
@@ -1104,10 +1280,11 @@
         }
 
         window.addEventListener('DOMContentLoaded', fitClockToScreen);
-        window.onload = function() {
+        window.onload = function () {
             fitClockToScreen();
             requestAnimationFrame(tick);
         };
     </script>
 </body>
+
 </html>

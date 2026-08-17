@@ -354,6 +354,59 @@
         }
         .bird-wing { animation: birdFlap 5s ease-in-out infinite; transform-origin: right center; }
         .bird-wing-r { animation: birdFlap 5s ease-in-out infinite 0.05s; transform-origin: left center; }
+
+        /* ===== Floating Digital Time Display =====
+           Absolutely positioned overlay so toggling it never changes the
+           document flow / clock stage size. Clock keeps its exact scale. */
+        #digitalTimeOverlay {
+            position: fixed;
+            left: 12px;
+            bottom: 12px;
+            transform: none;
+            z-index: 30;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+        }
+        #digitalTimeOverlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .digital-time-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 18px;
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid rgba(217, 119, 6, 0.45);
+            border-radius: 14px;
+            box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), 0 0 14px rgba(217, 119, 6, 0.25) inset;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        #digitalTimeText {
+            font-family: 'Inter', sans-serif;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: #fbbf24;
+            text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
+            line-height: 1;
+        }
+        .digital-time-label {
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #fcd34d;
+            opacity: 0.7;
+            font-weight: 600;
+        }
+        @media (max-width: 480px) {
+            #digitalTimeText { font-size: 18px; letter-spacing: 1px; }
+            .digital-time-card { padding: 6px 14px; gap: 8px; }
+        }
     </style>
 </head>
 
@@ -947,6 +1000,21 @@
         </div>
     </main>
 
+    <!-- Floating Digital Time Display (toggled via Settings; default OFF)
+         Fixed overlay so it never affects clock layout/scaling. -->
+    <div id="digitalTimeOverlay" aria-hidden="true">
+        <div class="digital-time-card">
+            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div class="flex flex-col leading-none">
+                <span class="digital-time-label">Current Time</span>
+                <span id="digitalTimeText">12:00:00 PM</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Modal Control Panel Overlay -->
     <div id="controlModal"
         class="modal-overlay hidden-modal fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -1089,6 +1157,19 @@
 
             <!-- Toggles & Audio Volume -->
             <div class="space-y-3 border-t border-slate-800 pt-3">
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex flex-col">
+                        <span class="text-slate-300 font-medium">Show Digital Time Overlay</span>
+                        <span class="text-[10px] text-slate-500">Floating readout beneath the clock</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="digitalTimeToggle" class="sr-only peer">
+                        <div
+                            class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
+                        </div>
+                    </label>
+                </div>
+
                 <div class="flex items-center justify-between text-sm">
                     <span class="text-slate-300 font-medium">Tick-Tock Sound</span>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -1277,6 +1358,9 @@
         const minuteHandGroup = document.getElementById('minuteHandGroup');
         const secondHandGroup = document.getElementById('secondHandGroup');
         const digitalClock = document.getElementById('digitalClock');
+        const digitalTimeOverlay = document.getElementById('digitalTimeOverlay');
+        const digitalTimeText = document.getElementById('digitalTimeText');
+        const digitalTimeToggle = document.getElementById('digitalTimeToggle');
         const pendulum = document.getElementById('pendulum');
         const waterWheel = document.getElementById('waterWheel');
         const cuckooHouse = document.getElementById('cuckooHouse');
@@ -1431,6 +1515,18 @@
             volumeVal.textContent = `${e.target.value}%`;
         });
 
+        // Digital Time Overlay Toggle
+        digitalTimeToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                digitalTimeOverlay.classList.add('visible');
+                digitalTimeOverlay.setAttribute('aria-hidden', 'false');
+                updateClockUI(currentSimTime);
+            } else {
+                digitalTimeOverlay.classList.remove('visible');
+                digitalTimeOverlay.setAttribute('aria-hidden', 'true');
+            }
+        });
+
         // Numeral Switcher Logic
         numeralRomanBtn.addEventListener('click', () => {
             romanNumeralsGroup.classList.remove('hidden');
@@ -1514,6 +1610,11 @@
             // Update digital clock display in settings panel
             if (digitalClock) {
                 digitalClock.textContent = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            }
+
+            // Update floating digital time overlay
+            if (digitalTimeText) {
+                digitalTimeText.textContent = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
             }
 
             // Lower Weights as clock ticks (Calibrated to 24-Hour Cycle)

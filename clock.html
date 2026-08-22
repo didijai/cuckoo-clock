@@ -1234,10 +1234,35 @@
                 }
             }
 
-            toggleAudio() {
+            // True only when the context is actually running (audio can play)
+            isRunning() {
+                return !!(this.ctx && this.ctx.state === 'running');
+            }
+
+            // Create/resume the AudioContext. Must be called from a user gesture,
+            // because browsers block audio until the page receives one (autoplay policy).
+            activate() {
                 this.init();
                 if (this.ctx && this.ctx.state === 'suspended') {
                     this.ctx.resume();
+                }
+            }
+
+            // Turn sound ON and restore the master volume
+            enableAudio() {
+                this.enabled = true;
+                if (this.masterGain && this.ctx) {
+                    this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+                }
+            }
+
+            toggleAudio() {
+                this.activate();
+                // While the browser still has audio blocked (context suspended),
+                // treat clicks as activation gestures: enable sound instead of toggling.
+                if (!this.isRunning()) {
+                    this.enabled = true;
+                    return this.enabled;
                 }
                 this.enabled = !this.enabled;
                 if (this.masterGain && this.ctx) {
@@ -1405,16 +1430,69 @@
         });
 
         // Audio Toggle Button
-        enableAudioBtn.addEventListener('click', () => {
-            const isAudioActive = audio.toggleAudio();
-            if (isAudioActive) {
+        function updateAudioButtonUI() {
+            // Green "Sound Active" only when audio is truly running;
+            // amber "Enable Sound" while the browser still has it blocked/suspended.
+            const isTrulyActive = audio.enabled && audio.isRunning();
+            if (isTrulyActive) {
                 audioBtnText.textContent = "Sound Active";
                 enableAudioBtn.className = "flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl transition shadow-md";
             } else {
                 audioBtnText.textContent = "Enable Sound";
                 enableAudioBtn.className = "flex items-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl transition shadow-md";
             }
+        }
+
+        enableAudioBtn.addEventListener('click', () => {
+            audio.toggleAudio();
+            updateAudioButtonUI();
         });
+
+        // Autoplay policy: browsers only allow AudioContext.resume() after a user
+        // gesture. Listen once for ANY first interaction (click, tap, key press)
+        // anywhere on the page so sound becomes truly active without requiring
+        // the user to click the sound button specifically.
+        let gestureListenersAttached = true;
+        const firstGestureHandler = () => {
+            audio.activate();
+            audio.enableAudio(); // default-on: the activating gesture also turns sound ON
+            updateAudioButtonUI();
+            if (audio.isRunning() && gestureListenersAttached) {
+                detachGestureListeners();
+            }
+        };
+        // Listeners stay attached until audio is TRULY running, so a gesture that
+        // fails to unlock the context (e.g. pointerdown on some browsers) is
+        // simply retried on the next interaction.
+        const gestureEvents = ['pointerdown', 'pointerup', 'click', 'keydown', 'touchstart', 'touchend'];
+        const detachGestureListeners = () => {
+            gestureListenersAttached = false;
+            gestureEvents.forEach(evtName => window.removeEventListener(evtName, firstGestureHandler));
+        };
+        gestureEvents.forEach(evtName => {
+            window.addEventListener(evtName, firstGestureHandler);
+        });
+        // Keep button state in sync when resume completes asynchronously.
+        // (Re-bound inside activate(), since ctx only exists after init.)
+        const syncButtonOnStateChange = () => {
+            if (audio.ctx) {
+                audio.ctx.onstatechange = () => {
+                    updateAudioButtonUI();
+                    if (audio.isRunning() && gestureListenersAttached) {
+                        detachGestureListeners();
+                    }
+                };
+            }
+        };
+        syncButtonOnStateChange();
+        const originalActivate = audio.activate.bind(audio);
+        audio.activate = () => {
+            originalActivate();
+            syncButtonOnStateChange();
+        };
+
+        // Reflect the real audio state on load (starts amber until first gesture).
+        updateAudioButtonUI();
 
         // Trigger Cuckoo Button
         triggerCuckooBtn.addEventListener('click', () => {

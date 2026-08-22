@@ -515,6 +515,84 @@
                 z-index: 45;
             }
         }
+
+        /* ===== Quick Route Sidebar =====
+           Slim launcher docked on the RIGHT edge, vertically centered.
+           Each button opens the bus schedule panel with a specific route
+           pre-selected (routes are managed in Settings and stored in
+           localStorage). fitClockToScreen() reserves ~72px on the right
+           so the clock never slides underneath this strip. */
+        #quickSidebar {
+            position: fixed;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 36;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 7px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(217, 119, 6, 0.4);
+            border-radius: 16px;
+            box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .quick-sidebar-icon {
+            display: flex;
+            color: #fbbf24;
+            opacity: 0.85;
+            padding-bottom: 3px;
+            border-bottom: 1px solid rgba(217, 119, 6, 0.35);
+        }
+
+        .quick-route-btn {
+            width: 46px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: 1px solid rgba(217, 119, 6, 0.35);
+            background: rgba(120, 53, 15, 0.5);
+            color: #fbbf24;
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+        }
+
+        .quick-route-btn:hover {
+            background: rgba(180, 83, 9, 0.7);
+            transform: translateX(-2px);
+        }
+
+        .quick-route-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Highlighted while its route is the one loaded in the panel */
+        .quick-route-btn.active {
+            background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+            color: #1c1917;
+            border-color: rgba(251, 191, 36, 0.8);
+            box-shadow: 0 0 12px rgba(217, 119, 6, 0.55);
+        }
+
+        /* Tiny screens: keep the strip reachable but slimmer */
+        @media (max-width: 479px) {
+            .quick-route-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 
@@ -1132,8 +1210,8 @@
                     </path>
                 </svg>
             </button>
-            <a href="https://hkbus.app/zh" target="_blank" rel="noopener noreferrer" class="bus-panel-btn"
-                title="Open in New Tab">
+            <a id="busOpenTabLink" href="https://hkbus.app/zh" target="_blank" rel="noopener noreferrer"
+                class="bus-panel-btn" title="Open in New Tab">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
@@ -1145,6 +1223,21 @@
         <!-- Embedded live bus schedule (hkbus.app) -->
         <iframe id="busFrame" title="HK Bus Schedule (hkbus.app)" loading="lazy"></iframe>
     </aside>
+
+    <!-- Quick Route Sidebar: one-tap shortcuts that open the bus schedule
+         panel pre-loaded with a specific route. Buttons are generated from
+         the user-managed shortcut list (Settings -> Bus Route Shortcuts,
+         persisted in localStorage). -->
+    <nav id="quickSidebar" aria-label="Quick bus route shortcuts">
+        <span class="quick-sidebar-icon" title="Bus route shortcuts">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-9 0h10a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V8a2 2 0 012-2zm2 11a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM5 12h14">
+                </path>
+            </svg>
+        </span>
+        <div id="quickRouteBtns"></div>
+    </nav>
 
     <!-- Floating Digital Time Display (toggled via Settings; default OFF)
          Fixed overlay so it never affects clock layout/scaling. -->
@@ -1369,6 +1462,56 @@
                 </div>
             </div>
 
+            <!-- Bus Route Shortcuts Manager: add / update / delete the
+                 one-tap route buttons in the RIGHT-edge sidebar. The list
+                 is stored in localStorage so it survives page reloads. -->
+            <div class="space-y-3 border-t border-slate-800 pt-3">
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex flex-col">
+                        <span class="text-slate-300 font-medium">Bus Route Shortcuts</span>
+                        <span class="text-[10px] text-slate-500">Buttons in the right sidebar (hkbus.app links)</span>
+                    </div>
+                    <button id="busRouteAddBtn"
+                        class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold text-xs rounded-lg transition flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add
+                    </button>
+                </div>
+
+                <!-- One row per stored shortcut (rendered by JS) -->
+                <div id="busRouteList" class="space-y-2"></div>
+
+                <!-- Inline add/edit form (hidden until + Add or Edit) -->
+                <div id="busRouteForm" class="hidden space-y-2 bg-slate-950/70 border border-slate-800 rounded-xl p-3">
+                    <div class="flex items-end gap-2">
+                        <div class="w-20 shrink-0">
+                            <label for="busRouteLabelInput"
+                                class="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Label</label>
+                            <input id="busRouteLabelInput" type="text" maxlength="6" placeholder="111"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <label for="busRouteUrlInput"
+                                class="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Route
+                                URL (hkbus.app)</label>
+                            <input id="busRouteUrlInput" type="url" spellcheck="false"
+                                placeholder="https://hkbus.app/zh/route/..."
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+                    <p id="busRouteFormError" class="hidden text-[10px] text-rose-400 font-medium"></p>
+                    <div class="flex justify-end gap-2">
+                        <button id="busRouteCancelBtn"
+                            class="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 rounded-lg transition">Cancel</button>
+                        <button id="busRouteSaveBtn"
+                            class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold text-xs rounded-lg transition">Save</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -1563,11 +1706,72 @@
         const volumeSlider = document.getElementById('volumeSlider');
         const volumeVal = document.getElementById('volumeVal');
 
+        // Quick-access bus route shortcuts rendered into the RIGHT-side
+        // sidebar. The list starts EMPTY and is fully user-managed via
+        // Settings -> "Bus Route Shortcuts" (add / update / delete),
+        // persisted in localStorage. No routes are hardcoded here.
+        const BUS_ROUTES_STORAGE_KEY = 'clock.busRoutes';
+
+        // One-time cleanup: drop the list written by the earlier build,
+        // which auto-seeded a default route, so every browser starts
+        // from zero regardless of stale storage.
+        try {
+            localStorage.removeItem('clock.busRouteShortcuts');
+        } catch (err) {
+            /* storage unavailable - nothing to clean up */
+        }
+
+        const BUS_HOME_URL = 'https://hkbus.app/zh';
+        let currentBusUrl = BUS_HOME_URL; // last URL loaded into the embed
+        let activeRouteUrl = null; // shortcut currently highlighted, if any
+        let editingRouteIndex = -1; // -1 = adding a new route, >= 0 = editing
+
+        // Read the shortcut list from localStorage. Starts empty when
+        // nothing (valid) is stored; malformed entries are dropped so
+        // corrupt storage can never break the page.
+        function loadBusRoutes() {
+            try {
+                const raw = localStorage.getItem(BUS_ROUTES_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed
+                    .filter((r) => r && typeof r.label === 'string' && typeof r.url === 'string'
+                        && r.label.trim() && /^https?:\/\//i.test(r.url.trim()))
+                    .map((r) => ({ label: r.label.trim(), url: r.url.trim() }));
+            } catch (err) {
+                return [];
+            }
+        }
+
+        function saveBusRoutes() {
+            try {
+                localStorage.setItem(BUS_ROUTES_STORAGE_KEY, JSON.stringify(busRoutes));
+            } catch (err) {
+                // Storage unavailable (private mode etc.): shortcuts still
+                // work for this session, they just won't persist.
+            }
+        }
+
+        let busRoutes = loadBusRoutes(); // current shortcut list [{label,url}]
+
         // Bus Schedule Panel Elements
         const busPanel = document.getElementById('busPanel');
         const busFrame = document.getElementById('busFrame');
         const busScheduleToggle = document.getElementById('busScheduleToggle');
         const busReloadBtn = document.getElementById('busReloadBtn');
+        const busOpenTabLink = document.getElementById('busOpenTabLink');
+
+        // Quick Route Sidebar + Settings Manager Elements
+        const quickRouteBtns = document.getElementById('quickRouteBtns');
+        const busRouteAddBtn = document.getElementById('busRouteAddBtn');
+        const busRouteList = document.getElementById('busRouteList');
+        const busRouteForm = document.getElementById('busRouteForm');
+        const busRouteLabelInput = document.getElementById('busRouteLabelInput');
+        const busRouteUrlInput = document.getElementById('busRouteUrlInput');
+        const busRouteFormError = document.getElementById('busRouteFormError');
+        const busRouteCancelBtn = document.getElementById('busRouteCancelBtn');
+        const busRouteSaveBtn = document.getElementById('busRouteSaveBtn');
 
         // Modal Elements
         const controlModal = document.getElementById('controlModal');
@@ -1768,6 +1972,48 @@
             }
         });
 
+        // Bus Schedule Panel helpers shared by the Settings toggle and the
+        // quick-route sidebar shortcuts.
+        function showBusPanel() {
+            busPanel.classList.add('visible');
+            busPanel.setAttribute('aria-hidden', 'false');
+            // Lazy-load the embed only when first enabled so the page
+            // stays fast when the feature is never used.
+            if (!busFrame.src || busFrame.src === window.location.href || busFrame.src === 'about:blank') {
+                busFrame.src = currentBusUrl;
+            }
+        }
+
+        function hideBusPanel() {
+            busPanel.classList.remove('visible');
+            busPanel.setAttribute('aria-hidden', 'true');
+        }
+
+        // Highlight the sidebar button whose route is currently loaded
+        // (only while the panel itself is visible).
+        function syncShortcutHighlight() {
+            Array.from(quickRouteBtns.children).forEach((btn, i) => {
+                const route = busRoutes[i];
+                btn.classList.toggle('active', busScheduleEnabled && !!route && route.url === activeRouteUrl);
+            });
+        }
+
+        // Open the schedule panel with a specific route pre-selected.
+        // Reassigning src every time means tapping the same shortcut again
+        // also refreshes the ETA data.
+        function openBusRoute(route) {
+            currentBusUrl = route.url;
+            activeRouteUrl = route.url;
+            busOpenTabLink.href = route.url;
+            if (!busScheduleEnabled) {
+                busScheduleEnabled = true;
+                busScheduleToggle.checked = true; // keep Settings toggle in sync
+            }
+            showBusPanel();
+            syncShortcutHighlight();
+            fitClockToScreen();
+        }
+
         // Bus Schedule Panel Toggle:
         // ON  -> show the left-docked panel (lazy-loads hkbus.app on first use)
         //         and re-fit the clock into the remaining space to its right.
@@ -1775,24 +2021,170 @@
         busScheduleToggle.addEventListener('change', (e) => {
             busScheduleEnabled = e.target.checked;
             if (busScheduleEnabled) {
-                busPanel.classList.add('visible');
-                busPanel.setAttribute('aria-hidden', 'false');
-                // Lazy-load the embed only when first enabled so the page
-                // stays fast when the feature is never used.
-                if (!busFrame.src || busFrame.src === window.location.href || busFrame.src === 'about:blank') {
-                    busFrame.src = 'https://hkbus.app/zh';
-                }
+                showBusPanel();
+                syncShortcutHighlight();
             } else {
-                busPanel.classList.remove('visible');
-                busPanel.setAttribute('aria-hidden', 'true');
+                hideBusPanel();
+                activeRouteUrl = null;
+                syncShortcutHighlight();
             }
             fitClockToScreen();
         });
 
-        // Reload the embedded schedule on demand
+        // Reload the embedded schedule on demand (reloads whichever view
+        // is currently active: homepage or a shortcut route)
         busReloadBtn.addEventListener('click', () => {
-            busFrame.src = 'https://hkbus.app/zh';
+            busFrame.src = currentBusUrl;
         });
+
+        // ===== Bus Route Shortcuts: Sidebar + Settings Manager =====
+
+        // Build one sidebar button per stored route shortcut.
+        function renderQuickRouteButtons() {
+            quickRouteBtns.innerHTML = '';
+            busRoutes.forEach((route) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'quick-route-btn';
+                btn.textContent = route.label;
+                btn.addEventListener('click', () => openBusRoute(route));
+                quickRouteBtns.appendChild(btn);
+            });
+            syncShortcutHighlight();
+        }
+
+        // Build the Settings-modal rows (label + url + edit/delete controls).
+        function renderBusRouteManager() {
+            busRouteList.innerHTML = '';
+            if (busRoutes.length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'text-[11px] text-slate-500 italic';
+                empty.textContent = 'No shortcuts yet. Click "+ Add" to create one.';
+                busRouteList.appendChild(empty);
+                return;
+            }
+            busRoutes.forEach((route, idx) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-lg px-2.5 py-1.5';
+
+                const badge = document.createElement('span');
+                badge.className = 'shrink-0 min-w-[34px] text-center px-2 py-0.5 rounded-md bg-amber-600/20 text-amber-400 text-xs font-bold';
+                badge.textContent = route.label;
+
+                const urlSpan = document.createElement('span');
+                urlSpan.className = 'flex-1 min-w-0 text-[10px] text-slate-500 truncate';
+                urlSpan.textContent = route.url;
+                urlSpan.title = route.url;
+
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.title = 'Edit';
+                editBtn.className = 'shrink-0 p-1 rounded-md text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition';
+                editBtn.innerHTML =
+                    '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                    'd="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>';
+                editBtn.addEventListener('click', () => startEditRoute(idx));
+
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.title = 'Delete';
+                delBtn.className = 'shrink-0 p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition';
+                delBtn.innerHTML =
+                    '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" ' +
+                    'd="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>';
+                delBtn.addEventListener('click', () => deleteRoute(idx));
+
+                row.append(badge, urlSpan, editBtn, delBtn);
+                busRouteList.appendChild(row);
+            });
+        }
+
+        function hideRouteForm() {
+            editingRouteIndex = -1;
+            busRouteForm.classList.add('hidden');
+            busRouteFormError.classList.add('hidden');
+            busRouteLabelInput.value = '';
+            busRouteUrlInput.value = '';
+        }
+
+        function startAddRoute() {
+            editingRouteIndex = -1;
+            busRouteLabelInput.value = '';
+            busRouteUrlInput.value = '';
+            busRouteFormError.classList.add('hidden');
+            busRouteForm.classList.remove('hidden');
+            busRouteLabelInput.focus();
+        }
+
+        function startEditRoute(idx) {
+            editingRouteIndex = idx;
+            busRouteLabelInput.value = busRoutes[idx].label;
+            busRouteUrlInput.value = busRoutes[idx].url;
+            busRouteFormError.classList.add('hidden');
+            busRouteForm.classList.remove('hidden');
+            busRouteLabelInput.focus();
+        }
+
+        function deleteRoute(idx) {
+            const removed = busRoutes.splice(idx, 1)[0];
+            if (removed && removed.url === activeRouteUrl) {
+                activeRouteUrl = null; // its highlight no longer applies
+            }
+            saveBusRoutes();
+            renderQuickRouteButtons();
+            renderBusRouteManager();
+            if (!busFormHidden()) hideRouteForm();
+        }
+
+        function busFormHidden() {
+            return busRouteForm.classList.contains('hidden');
+        }
+
+        function showRouteFormError(msg) {
+            busRouteFormError.textContent = msg;
+            busRouteFormError.classList.remove('hidden');
+        }
+
+        // Validate and persist the add/edit form. URLs must be absolute
+        // http(s) links; hkbus.app route links pre-select the route.
+        function saveRouteFromForm() {
+            const label = busRouteLabelInput.value.trim();
+            const url = busRouteUrlInput.value.trim();
+            if (!label) {
+                showRouteFormError('Label is required.');
+                return;
+            }
+            if (!/^https?:\/\//i.test(url)) {
+                showRouteFormError('URL must start with http:// or https://');
+                return;
+            }
+            if (editingRouteIndex >= 0) {
+                const oldUrl = busRoutes[editingRouteIndex].url;
+                busRoutes[editingRouteIndex] = { label, url };
+                if (activeRouteUrl === oldUrl) activeRouteUrl = url;
+            } else {
+                busRoutes.push({ label, url });
+            }
+            saveBusRoutes();
+            renderQuickRouteButtons();
+            renderBusRouteManager();
+            hideRouteForm();
+        }
+
+        busRouteAddBtn.addEventListener('click', startAddRoute);
+        busRouteCancelBtn.addEventListener('click', hideRouteForm);
+        busRouteSaveBtn.addEventListener('click', saveRouteFromForm);
+        [busRouteLabelInput, busRouteUrlInput].forEach((input) => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') saveRouteFromForm();
+            });
+        });
+
+        // Initial paint of the sidebar buttons and settings rows
+        renderQuickRouteButtons();
+        renderBusRouteManager();
 
         // Numeral Switcher Logic
         numeralRomanBtn.addEventListener('click', () => {
@@ -1936,9 +2328,17 @@
             const paddingX = 16;
             const paddingY = 12;
 
-            let availableW = Math.max(stageWidth - paddingX, 60);
+            // Right-side reservation for the quick-route sidebar strip
+            // (#quickSidebar) so the clock never sits underneath it. On
+            // portrait phones the height constraint usually binds first,
+            // so this flat horizontal cost is negligible there.
+            const sidebarReserve = 72;
+
+            let availableW = Math.max(stageWidth - paddingX - sidebarReserve, 60);
             const availableH = Math.max(stageHeight - paddingY, 60);
-            let lateralOffset = 0; // horizontal nudge applied after centering
+            // Nudge the clock left of true center by half the reserved
+            // strip so it is centered within the actually-free area.
+            let lateralOffset = -sidebarReserve / 2;
 
             // Bus Schedule Mode: measure the left-docked panel's real
             // footprint and re-center the clock inside [panel edge, stage edge].
@@ -1949,7 +2349,7 @@
                 const stageRect = stage.getBoundingClientRect();
                 const gap = 24; // breathing room between panel and clock
                 const regionLeft = Math.max(panelRect.right + gap, stageRect.left);
-                const regionRight = stageRect.right;
+                const regionRight = stageRect.right - sidebarReserve;
 
                 // Only shift when a sensible amount of room remains for the clock
                 if (regionRight - regionLeft > 160) {

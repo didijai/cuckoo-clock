@@ -357,10 +357,12 @@
 
         /* ===== Floating Digital Time Display =====
            Absolutely positioned overlay so toggling it never changes the
-           document flow / clock stage size. Clock keeps its exact scale. */
+           document flow / clock stage size. Clock keeps its exact scale.
+           Anchored to the BOTTOM-RIGHT corner so it never collides with
+           the bus schedule panel docked on the LEFT edge. */
         #digitalTimeOverlay {
             position: fixed;
-            left: 12px;
+            right: 12px;
             bottom: 12px;
             transform: none;
             z-index: 30;
@@ -406,6 +408,112 @@
         @media (max-width: 480px) {
             #digitalTimeText { font-size: 18px; letter-spacing: 1px; }
             .digital-time-card { padding: 6px 14px; gap: 8px; }
+        }
+
+        /* ===== Bus Schedule Side Panel =====
+           Docked overlay on the LEFT edge; embeds hkbus.app so no schedule
+           UI needs to be developed here. Hidden by default; toggled via
+           Settings. While visible, fitClockToScreen() reserves this panel's
+           width and re-centers the clock in the remaining right-hand space. */
+        #busPanel {
+            position: fixed;
+            left: 16px;
+            top: 92px;
+            bottom: 16px;
+            width: min(420px, 36vw);
+            z-index: 35;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.94);
+            border: 1px solid rgba(217, 119, 6, 0.45);
+            border-radius: 18px;
+            box-shadow: 0 10px 34px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(-16px);
+            transition: opacity 0.3s ease, visibility 0.3s ease,
+                transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #busPanel.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: none;
+        }
+
+        .bus-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: linear-gradient(180deg, #3d2314 0%, #26140a 100%);
+            border-bottom: 1px solid rgba(217, 119, 6, 0.4);
+            flex-shrink: 0;
+        }
+
+        .bus-panel-title {
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: #fcd34d;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+
+        .bus-panel-subtitle {
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #fbbf24;
+            opacity: 0.65;
+            font-weight: 600;
+        }
+
+        .bus-panel-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            border: 1px solid rgba(217, 119, 6, 0.45);
+            background: rgba(120, 53, 15, 0.55);
+            color: #fbbf24;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+        }
+
+        .bus-panel-btn:hover {
+            background: rgba(180, 83, 9, 0.75);
+        }
+
+        .bus-panel-btn:active {
+            transform: scale(0.92);
+        }
+
+        #busFrame {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #0f172a;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Small screens: the panel covers most of the viewport as an overlay
+           instead of squeezing the clock into a sliver. */
+        @media (max-width: 639px) {
+            #busPanel {
+                left: 12px;
+                right: 12px;
+                top: 76px;
+                bottom: 12px;
+                width: auto;
+                z-index: 45;
+            }
         }
     </style>
 </head>
@@ -1000,6 +1108,44 @@
         </div>
     </main>
 
+    <!-- Bus Schedule Side Panel (toggled via Settings; default OFF)
+         Docked on the LEFT edge of the screen and embeds hkbus.app directly.
+         While visible, the clock is shifted/re-centered to the right of it. -->
+    <aside id="busPanel" aria-hidden="true">
+        <!-- Panel header: title, reload & open-in-new-tab actions -->
+        <div class="bus-panel-header">
+            <div class="p-1.5 bg-amber-900/50 rounded-lg border border-amber-600/40 text-amber-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2h-2M8 16v2a2 2 0 01-2 2H5m5-4h4m-7 2H6m12 0h-1M7 6h10v5H7V6z">
+                    </path>
+                </svg>
+            </div>
+            <div class="flex flex-col leading-tight mr-auto min-w-0">
+                <span class="bus-panel-title">Bus Schedule</span>
+                <span class="bus-panel-subtitle">巴士到站 · hkbus.app</span>
+            </div>
+            <button id="busReloadBtn" class="bus-panel-btn" title="Reload Schedule">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                    </path>
+                </svg>
+            </button>
+            <a href="https://hkbus.app/zh" target="_blank" rel="noopener noreferrer" class="bus-panel-btn"
+                title="Open in New Tab">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+                    </path>
+                </svg>
+            </a>
+        </div>
+
+        <!-- Embedded live bus schedule (hkbus.app) -->
+        <iframe id="busFrame" title="HK Bus Schedule (hkbus.app)" loading="lazy"></iframe>
+    </aside>
+
     <!-- Floating Digital Time Display (toggled via Settings; default OFF)
          Fixed overlay so it never affects clock layout/scaling. -->
     <div id="digitalTimeOverlay" aria-hidden="true">
@@ -1156,10 +1302,24 @@
                 <div class="flex items-center justify-between text-sm">
                     <div class="flex flex-col">
                         <span class="text-slate-300 font-medium">Show Digital Time Overlay</span>
-                        <span class="text-[10px] text-slate-500">Floating readout beneath the clock</span>
+                        <span class="text-[10px] text-slate-500">Floating readout at the bottom-right</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="digitalTimeToggle" class="sr-only peer">
+                        <div
+                            class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
+                        </div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex flex-col">
+                        <span class="text-slate-300 font-medium">Show Bus Schedule Panel</span>
+                        <span class="text-[10px] text-slate-500">Live HK bus ETAs (hkbus.app) docked left; clock
+                            shifts right</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="busScheduleToggle" class="sr-only peer">
                         <div
                             class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
                         </div>
@@ -1373,6 +1533,7 @@
         let weightDropAmount = 0;
         let lastSecond = -1;
         let lastTickSide = false;
+        let busScheduleEnabled = false; // Bus schedule panel ON/OFF (Settings toggle)
 
         // DOM Elements
         const hourHandGroup = document.getElementById('hourHandGroup');
@@ -1401,6 +1562,12 @@
         const autoRewindToggle = document.getElementById('autoRewindToggle');
         const volumeSlider = document.getElementById('volumeSlider');
         const volumeVal = document.getElementById('volumeVal');
+
+        // Bus Schedule Panel Elements
+        const busPanel = document.getElementById('busPanel');
+        const busFrame = document.getElementById('busFrame');
+        const busScheduleToggle = document.getElementById('busScheduleToggle');
+        const busReloadBtn = document.getElementById('busReloadBtn');
 
         // Modal Elements
         const controlModal = document.getElementById('controlModal');
@@ -1601,6 +1768,32 @@
             }
         });
 
+        // Bus Schedule Panel Toggle:
+        // ON  -> show the left-docked panel (lazy-loads hkbus.app on first use)
+        //         and re-fit the clock into the remaining space to its right.
+        // OFF -> hide the panel and restore the centered clock.
+        busScheduleToggle.addEventListener('change', (e) => {
+            busScheduleEnabled = e.target.checked;
+            if (busScheduleEnabled) {
+                busPanel.classList.add('visible');
+                busPanel.setAttribute('aria-hidden', 'false');
+                // Lazy-load the embed only when first enabled so the page
+                // stays fast when the feature is never used.
+                if (!busFrame.src || busFrame.src === window.location.href || busFrame.src === 'about:blank') {
+                    busFrame.src = 'https://hkbus.app/zh';
+                }
+            } else {
+                busPanel.classList.remove('visible');
+                busPanel.setAttribute('aria-hidden', 'true');
+            }
+            fitClockToScreen();
+        });
+
+        // Reload the embedded schedule on demand
+        busReloadBtn.addEventListener('click', () => {
+            busFrame.src = 'https://hkbus.app/zh';
+        });
+
         // Numeral Switcher Logic
         numeralRomanBtn.addEventListener('click', () => {
             romanNumeralsGroup.classList.remove('hidden');
@@ -1720,7 +1913,11 @@
             }
         }
 
-        // Responsive Scaling: Detect browser window/container size and resize clock to fit screen perfectly
+        // Responsive Scaling: Detect browser window/container size and resize clock to fit screen perfectly.
+        // When the Bus Schedule panel is ON (and the screen is wide enough for
+        // side-by-side layout), the panel's footprint is reserved on the LEFT
+        // and the clock is scaled/centered within the remaining right-hand
+        // region, i.e. "bus schedule on the left, clock moves to the right".
         function fitClockToScreen() {
             const clock = document.getElementById('clockContainer');
             const stage = document.getElementById('clockStage');
@@ -1739,12 +1936,35 @@
             const paddingX = 16;
             const paddingY = 12;
 
-            const availableW = Math.max(stageWidth - paddingX, 60);
+            let availableW = Math.max(stageWidth - paddingX, 60);
             const availableH = Math.max(stageHeight - paddingY, 60);
+            let lateralOffset = 0; // horizontal nudge applied after centering
+
+            // Bus Schedule Mode: measure the left-docked panel's real
+            // footprint and re-center the clock inside [panel edge, stage edge].
+            // Below 640px the panel becomes a full overlay instead, so no
+            // space is reserved and the clock keeps its normal position.
+            if (busScheduleEnabled && window.innerWidth >= 640) {
+                const panelRect = busPanel.getBoundingClientRect();
+                const stageRect = stage.getBoundingClientRect();
+                const gap = 24; // breathing room between panel and clock
+                const regionLeft = Math.max(panelRect.right + gap, stageRect.left);
+                const regionRight = stageRect.right;
+
+                // Only shift when a sensible amount of room remains for the clock
+                if (regionRight - regionLeft > 160) {
+                    availableW = Math.max(regionRight - regionLeft - paddingX, 60);
+                    const regionCenterX = (regionLeft + regionRight) / 2;
+                    const stageCenterX = stageRect.left + stageWidth / 2;
+                    lateralOffset = regionCenterX - stageCenterX;
+                }
+            }
 
             const scale = Math.min(availableW / baseWidth, availableH / baseHeight);
 
-            clock.style.transform = `scale(${scale})`;
+            // translateX is outermost so it shifts in unscaled screen pixels,
+            // keeping the clock centered in the free region next to the panel.
+            clock.style.transform = `translateX(${lateralOffset}px) scale(${scale})`;
             clock.style.transformOrigin = 'center center';
         }
 

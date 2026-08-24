@@ -1999,12 +1999,14 @@
         }
 
         // Open the schedule panel with a specific route pre-selected.
-        // Reassigning src every time means tapping the same shortcut again
-        // also refreshes the ETA data.
+        // Assigning src on EVERY press both swaps the displayed route when
+        // switching shortcuts AND refreshes the ETA data when re-tapping
+        // the same one (setting src always navigates/reloads the iframe).
         function openBusRoute(route) {
             currentBusUrl = route.url;
             activeRouteUrl = route.url;
             busOpenTabLink.href = route.url;
+            busFrame.src = route.url;
             if (!busScheduleEnabled) {
                 busScheduleEnabled = true;
                 busScheduleToggle.checked = true; // keep Settings toggle in sync

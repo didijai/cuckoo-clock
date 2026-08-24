@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swiss Chalet Cuckoo Clock</title>
+    <title>Black Forest Chalet Cuckoo Clock</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600;700&display=swap"
@@ -1043,18 +1043,13 @@
                     class="relative w-96 h-96 my-4 rounded-full bg-amber-50 border-[16px] border-amber-950 shadow-[inset_0_6px_16px_rgba(0,0,0,0.7)] flex items-center justify-center filter drop-shadow-xl">
 
                     <!-- Scalable SVG Dial & Hands -->
-                    <svg id="clockFaceSVG" class="w-full h-full" viewBox="0 0 300 300">
+                    <svg class="w-full h-full" viewBox="0 0 300 300">
                         <!-- Outer Decorative Rings -->
                         <circle cx="150" cy="150" r="142" fill="none" stroke="#d97706" stroke-width="3" />
                         <circle cx="150" cy="150" r="136" fill="none" stroke="#78350f" stroke-width="1.5"
                             stroke-dasharray="4 4" />
                         <circle cx="150" cy="150" r="95" fill="none" stroke="#b45309" stroke-width="1"
                             stroke-dasharray="2 2" />
-
-                        <!-- Tick Marks for Minutes -->
-                        <g stroke="#451a03" stroke-width="2" opacity="0.6">
-                            <!-- Major ticks handled by numbers -->
-                        </g>
 
                         <!-- Roman Numerals Group (Hidden by default, Arabic shown) -->
                         <g id="romanNumerals" class="hidden fill-[#381a08] font-serif font-black text-[24px]"
@@ -1683,11 +1678,11 @@
         const minuteHandGroup = document.getElementById('minuteHandGroup');
         const secondHandGroup = document.getElementById('secondHandGroup');
         const digitalClock = document.getElementById('digitalClock');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
         const digitalTimeOverlay = document.getElementById('digitalTimeOverlay');
         const digitalTimeText = document.getElementById('digitalTimeText');
         const digitalTimeToggle = document.getElementById('digitalTimeToggle');
-        const pendulum = document.getElementById('pendulum');
-        const waterWheel = document.getElementById('waterWheel');
         const cuckooHouse = document.getElementById('cuckooHouse');
         const dancingBalcony = document.getElementById('dancingBalcony');
         const enableAudioBtn = document.getElementById('enableAudioBtn');
@@ -1711,16 +1706,6 @@
         // Settings -> "Bus Route Shortcuts" (add / update / delete),
         // persisted in localStorage. No routes are hardcoded here.
         const BUS_ROUTES_STORAGE_KEY = 'clock.busRoutes';
-
-        // One-time cleanup: drop the list written by the earlier build,
-        // which auto-seeded a default route, so every browser starts
-        // from zero regardless of stale storage.
-        try {
-            localStorage.removeItem('clock.busRouteShortcuts');
-        } catch (err) {
-            /* storage unavailable - nothing to clean up */
-        }
-
         const BUS_HOME_URL = 'https://hkbus.app/zh';
         let currentBusUrl = BUS_HOME_URL; // last URL loaded into the embed
         let activeRouteUrl = null; // shortcut currently highlighted, if any
@@ -1875,8 +1860,6 @@
         // Toggle Time Mode Button (Realtime vs Manual)
         toggleTimeModeBtn.addEventListener('click', () => {
             isRealTimeMode = !isRealTimeMode;
-            const statusBadge = document.getElementById('statusBadge');
-            const statusText = document.getElementById('statusText');
 
             if (isRealTimeMode) {
                 timeModeText.textContent = "Manual Mode";
@@ -2268,14 +2251,16 @@
             if (minuteHandGroup) minuteHandGroup.setAttribute('transform', `rotate(${minDeg} 150 150)`);
             if (hourHandGroup) hourHandGroup.setAttribute('transform', `rotate(${hourDeg} 150 150)`);
 
-            // Update digital clock display in settings panel
-            if (digitalClock) {
-                digitalClock.textContent = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            // Update digital readouts. Build the formatted string once,
+            // then only write to the DOM when a readout is actually shown
+            // (the modal clock and floating overlay are hidden most of the
+            // time, so this skips ~120 wasted text writes/min).
+            const timeString = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            if (digitalClock && !controlModal.classList.contains('hidden-modal')) {
+                digitalClock.textContent = timeString;
             }
-
-            // Update floating digital time overlay
-            if (digitalTimeText) {
-                digitalTimeText.textContent = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            if (digitalTimeText && digitalTimeOverlay.classList.contains('visible')) {
+                digitalTimeText.textContent = timeString;
             }
 
             // Lower Weights as clock ticks (Calibrated to 24-Hour Cycle)

@@ -1740,6 +1740,58 @@
 
         let busRoutes = loadBusRoutes(); // current shortcut list [{label,url}]
 
+        // ===== All Settings Persistence =====
+        const SETTINGS_STORAGE_KEY = 'clock.settings';
+
+        function loadSettings() {
+            try {
+                const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (typeof parsed !== 'object' || parsed === null) return null;
+                return parsed;
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function saveSettings() {
+            try {
+                const settings = {
+                    isRealTimeMode,
+                    autoChimeEnabled,
+                    autoRewindEnabled,
+                    busScheduleEnabled,
+                    speedMultiplier,
+                    currentBusUrl,
+                    activeRouteUrl,
+                    isPM,
+                    hourSlider: parseInt(hourSlider.value, 10),
+                    volume: parseInt(volumeSlider.value, 10),
+                    digitalTimeOverlay: digitalTimeOverlay.classList.contains('visible'),
+                    tickTock: tickTockToggle.checked,
+                    numeralStyle: romanNumeralsGroup.classList.contains('hidden') ? 'arabic' : 'roman'
+                };
+                localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+            } catch (err) {
+                // Storage unavailable (private mode etc.): settings still
+                // work for this session, they just won't persist.
+            }
+        }
+
+        // Debounce helper: wait for `delay` ms of inactivity before
+        // calling `fn`. Used on slider `input` events so rapid drags
+        // only write to localStorage once at the end.
+        function debounce(fn, delay) {
+            let timer;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        const debouncedSaveSettings = debounce(saveSettings, 150);
+
         // Bus Schedule Panel Elements
         const busPanel = document.getElementById('busPanel');
         const busFrame = document.getElementById('busFrame');
@@ -1872,6 +1924,7 @@
                 statusText.textContent = "Manual Simulation";
                 statusBadge.className = "px-2.5 py-1 text-xs rounded-lg font-medium bg-amber-950 text-amber-400 border border-amber-800/50 flex items-center gap-1.5";
             }
+            saveSettings();
         });
 
         // AM/PM Toggle Elements
@@ -1907,40 +1960,48 @@
             amBtn.className = 'px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all';
             pmBtn.className = 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all';
             updateTimeFromSlider();
+            saveSettings();
         });
         pmBtn.addEventListener('click', () => {
             isPM = true;
             pmBtn.className = 'px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all';
             amBtn.className = 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all';
             updateTimeFromSlider();
+            saveSettings();
         });
 
         // Slider Handlers
         hourSlider.addEventListener('input', () => {
             updateTimeFromSlider();
+            debouncedSaveSettings();
         });
 
         speedSlider.addEventListener('input', (e) => {
             speedMultiplier = parseInt(e.target.value, 10);
             speedVal.textContent = `${speedMultiplier}x ${speedMultiplier === 1 ? '(Realtime)' : 'Speed'}`;
+            debouncedSaveSettings();
         });
 
         tickTockToggle.addEventListener('change', (e) => {
             audio.tickEnabled = e.target.checked;
+            saveSettings();
         });
 
         autoChimeToggle.addEventListener('change', (e) => {
             autoChimeEnabled = e.target.checked;
+            saveSettings();
         });
 
         autoRewindToggle.addEventListener('change', (e) => {
             autoRewindEnabled = e.target.checked;
+            saveSettings();
         });
 
         volumeSlider.addEventListener('input', (e) => {
             const val = parseInt(e.target.value, 10) / 100;
             audio.setVolume(val);
             volumeVal.textContent = `${e.target.value}%`;
+            debouncedSaveSettings();
         });
 
         // Digital Time Overlay Toggle
@@ -1953,6 +2014,7 @@
                 digitalTimeOverlay.classList.remove('visible');
                 digitalTimeOverlay.setAttribute('aria-hidden', 'true');
             }
+            saveSettings();
         });
 
         // Bus Schedule Panel helpers shared by the Settings toggle and the
@@ -1995,6 +2057,7 @@
                 activeRouteUrl = null;
                 syncShortcutHighlight();
                 fitClockToScreen();
+                saveSettings();
                 return;
             }
             currentBusUrl = route.url;
@@ -2008,6 +2071,7 @@
             showBusPanel();
             syncShortcutHighlight();
             fitClockToScreen();
+            saveSettings();
         }
 
         // Bus Schedule Panel Toggle:
@@ -2025,6 +2089,7 @@
                 syncShortcutHighlight();
             }
             fitClockToScreen();
+            saveSettings();
         });
 
         // Reload the embedded schedule on demand (reloads whichever view
@@ -2129,6 +2194,7 @@
                 activeRouteUrl = null; // its highlight no longer applies
             }
             saveBusRoutes();
+            saveSettings();
             renderQuickRouteButtons();
             renderBusRouteManager();
             if (!busFormHidden()) hideRouteForm();
@@ -2164,6 +2230,7 @@
                 busRoutes.push({ label, url });
             }
             saveBusRoutes();
+            saveSettings();
             renderQuickRouteButtons();
             renderBusRouteManager();
             hideRouteForm();
@@ -2188,6 +2255,7 @@
             arabicNumeralsGroup.classList.add('hidden');
             numeralRomanBtn.className = "px-3 py-1 rounded-lg font-bold bg-amber-600 text-slate-950 transition";
             numeralArabicBtn.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+            saveSettings();
         });
 
         numeralArabicBtn.addEventListener('click', () => {
@@ -2195,6 +2263,7 @@
             romanNumeralsGroup.classList.add('hidden');
             numeralArabicBtn.className = "px-3 py-1 rounded-lg font-bold bg-amber-600 text-slate-950 transition";
             numeralRomanBtn.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+            saveSettings();
         });
 
         // Rewind Pinecone Weights
@@ -2388,6 +2457,83 @@
         }
 
         window.addEventListener('DOMContentLoaded', fitClockToScreen);
+
+        // Apply loaded settings to UI and state (runs after all functions
+        // and event listeners are defined, right before window.onload).
+        const savedSettings = loadSettings();
+        if (savedSettings) {
+            if (typeof savedSettings.isRealTimeMode === 'boolean') isRealTimeMode = savedSettings.isRealTimeMode;
+            if (typeof savedSettings.autoChimeEnabled === 'boolean') {
+                autoChimeEnabled = savedSettings.autoChimeEnabled;
+                autoChimeToggle.checked = savedSettings.autoChimeEnabled;
+            }
+            if (typeof savedSettings.autoRewindEnabled === 'boolean') {
+                autoRewindEnabled = savedSettings.autoRewindEnabled;
+                autoRewindToggle.checked = savedSettings.autoRewindEnabled;
+            }
+            if (typeof savedSettings.busScheduleEnabled === 'boolean') busScheduleEnabled = savedSettings.busScheduleEnabled;
+            if (typeof savedSettings.speedMultiplier === 'number') speedMultiplier = Math.max(1, Math.min(60, savedSettings.speedMultiplier));
+            if (typeof savedSettings.currentBusUrl === 'string' && /^https?:\/\//i.test(savedSettings.currentBusUrl)) currentBusUrl = savedSettings.currentBusUrl;
+            if (savedSettings.activeRouteUrl === null || (typeof savedSettings.activeRouteUrl === 'string' && /^https?:\/\//i.test(savedSettings.activeRouteUrl))) activeRouteUrl = savedSettings.activeRouteUrl;
+            if (typeof savedSettings.isPM === 'boolean') isPM = savedSettings.isPM;
+            if (typeof savedSettings.hourSlider === 'number') hourSlider.value = Math.max(0, Math.min(719, savedSettings.hourSlider));
+            if (typeof savedSettings.volume === 'number') volumeSlider.value = Math.max(0, Math.min(100, savedSettings.volume));
+            if (typeof savedSettings.digitalTimeOverlay === 'boolean') {
+                if (savedSettings.digitalTimeOverlay) {
+                    digitalTimeOverlay.classList.add('visible');
+                    digitalTimeOverlay.setAttribute('aria-hidden', 'false');
+                } else {
+                    digitalTimeOverlay.classList.remove('visible');
+                    digitalTimeOverlay.setAttribute('aria-hidden', 'true');
+                }
+            }
+            if (typeof savedSettings.tickTock === 'boolean') {
+                tickTockToggle.checked = savedSettings.tickTock;
+                audio.tickEnabled = savedSettings.tickTock;
+            }
+            if (savedSettings.numeralStyle === 'roman') {
+                romanNumeralsGroup.classList.remove('hidden');
+                arabicNumeralsGroup.classList.add('hidden');
+                numeralRomanBtn.className = "px-3 py-1 rounded-lg font-bold bg-amber-600 text-slate-950 transition";
+                numeralArabicBtn.className = "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+            }
+        }
+
+        // Sync UI with loaded settings
+        if (isRealTimeMode) {
+            timeModeText.textContent = "Manual Mode";
+            manualControls.classList.add('hidden');
+            statusText.textContent = "Real Time";
+            statusBadge.className = "px-2.5 py-1 text-xs rounded-lg font-medium bg-emerald-950 text-emerald-400 border border-emerald-800/50 flex items-center gap-1.5";
+        } else {
+            timeModeText.textContent = "Real Time Mode";
+            manualControls.classList.remove('hidden');
+            statusText.textContent = "Manual Simulation";
+            statusBadge.className = "px-2.5 py-1 text-xs rounded-lg font-medium bg-amber-950 text-amber-400 border border-amber-800/50 flex items-center gap-1.5";
+            updateTimeFromSlider();
+        }
+
+        if (isPM) {
+            pmBtn.className = 'px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all';
+            amBtn.className = 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all';
+        } else {
+            amBtn.className = 'px-3 py-1 rounded-md font-bold bg-amber-600 text-slate-950 transition-all';
+            pmBtn.className = 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition-all';
+        }
+
+        speedSlider.value = speedMultiplier;
+        speedVal.textContent = `${speedMultiplier}x ${speedMultiplier === 1 ? '(Realtime)' : 'Speed'}`;
+
+        if (busScheduleEnabled) {
+            busScheduleToggle.checked = true;
+            busOpenTabLink.href = currentBusUrl;
+            showBusPanel();
+            syncShortcutHighlight();
+            fitClockToScreen();
+        }
+
+        digitalTimeToggle.checked = digitalTimeOverlay.classList.contains('visible');
+
         window.onload = function () {
             fitClockToScreen();
             requestAnimationFrame(tick);

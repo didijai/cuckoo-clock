@@ -558,8 +558,8 @@ function openBusRoute(route) {
         hideBusPanel();
         activeRouteUrl = null;
         syncShortcutHighlight();
-        fitClockToScreen();
         positionLearnPanel();
+        fitClockToScreen();
         saveSettings();
         return;
     }
@@ -574,8 +574,8 @@ function openBusRoute(route) {
     }
     showBusPanel();
     syncShortcutHighlight();
-    fitClockToScreen();
     positionLearnPanel();
+    fitClockToScreen();
     saveSettings();
 }
 
@@ -594,8 +594,8 @@ busScheduleToggle.addEventListener('change', (e) => {
         activeRouteUrl = null;
         syncShortcutHighlight();
     }
-    fitClockToScreen();
     positionLearnPanel();
+    fitClockToScreen();
     saveSettings();
 });
 
@@ -1007,21 +1007,33 @@ function fitClockToScreen() {
     let lateralOffset = -sidebarReserve / 2;
 
     // Left-docked panels (bus schedule + learn module). Both dock on
-    // the left edge; measure the RIGHTMOST open panel's edge and
+    // the left edge; compute the RIGHTMOST open panel's FINAL edge and
     // re-center the clock inside [that edge, stage edge]. Below 640px
     // they become full overlays instead, so no space is reserved.
-    const leftPanels = [];
-    if (busScheduleEnabled) leftPanels.push(busPanel);
-    if (learnPanelEnabled) leftPanels.push(learnPanel);
+    //
+    // Geometry is computed from each panel's fixed CSS (left + width),
+    // NOT from getBoundingClientRect(). The latter is polluted by the
+    // entrance/exit `transform: translateX(-16px)` transition, so a
+    // measurement taken mid-toggle reports a stale position and the
+    // clock would be re-fit against the wrong edge (e.g. when the bus
+    // panel is turned off, the learn panel still reads shifted right).
+    let rightmostPanel = 0;
+    if (busScheduleEnabled) {
+        rightmostPanel = 16 + Math.min(420, window.innerWidth * 0.36);
+    }
+    if (learnPanelEnabled) {
+        // Learn panel is shifted right of the bus panel when both are
+        // open (see positionLearnPanel()); otherwise it sits at 16px.
+        const learnWidth = Math.min(320, window.innerWidth * 0.30);
+        const learnLeft = busScheduleEnabled
+            ? Math.max(12 + rightmostPanel, 16)
+            : 16;
+        rightmostPanel = Math.max(rightmostPanel, learnLeft + learnWidth);
+    }
 
-    if (leftPanels.length > 0 && window.innerWidth >= 640) {
+    if (rightmostPanel > 0 && window.innerWidth >= 640) {
         const stageRect = stage.getBoundingClientRect();
         const gap = 24; // breathing room between panel(s) and clock
-        let rightmostPanel = 0;
-        leftPanels.forEach((p) => {
-            const r = p.getBoundingClientRect().right;
-            if (r > rightmostPanel) rightmostPanel = r;
-        });
         const regionLeft = Math.max(rightmostPanel + gap, stageRect.left);
         const regionRight = stageRect.right - sidebarReserve;
 

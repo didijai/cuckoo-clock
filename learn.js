@@ -315,22 +315,26 @@
         window.LearnTTS.speak(text);
     }
 
-    // Speak the current question's text ("3 + 4" -> "3 plus 4").
+    // Speak the current question as a friendly full sentence, e.g.
+    // "What is 6 plus 10?" instead of a bare "6 plus 10".
     function speakQuestion() {
         const q = currentQuestion;
         if (!q) return;
-        const spokenText = q.text
+        const phrase = q.text
             .replace(/\+/g, ' plus ')
             .replace(/-/g, ' minus ')
             .trim();
+        const spokenText = `What is ${phrase}?`;
         speakWith(spokenText);
     }
 
-    // Speak the current question's answer ("7").
+    // Speak the current question's answer as a full sentence, e.g.
+    // "The answer is 16!" instead of a bare "16".
     function speakAnswer() {
         const q = currentQuestion;
         if (!q) return;
-        speakWith(q.answer);
+        const spokenText = `The answer is ${q.answer}!`;
+        speakWith(spokenText);
     }
 
     function wireActions() {

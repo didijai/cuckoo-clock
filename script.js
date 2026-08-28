@@ -160,6 +160,7 @@ let lastSecond = -1;
 let lastTickSide = false;
 let busScheduleEnabled = false; // Bus schedule panel ON/OFF (Settings toggle)
 let learnPanelEnabled = false; // Learning panel (Math -> Addition) ON/OFF
+let ttsEnabled = true;         // Read-aloud (TTS) for the Learn panel, default ON
 
 // Below this width the bus + learn panels would crowd out the clock,
 // so only one left-docked panel is allowed at a time (opening one
@@ -256,6 +257,7 @@ function saveSettings() {
             autoRewindEnabled,
             busScheduleEnabled,
             learnPanelEnabled,
+            ttsEnabled,
             speedMultiplier,
             currentBusUrl,
             activeRouteUrl,
@@ -300,6 +302,7 @@ const learnPanel = document.getElementById('learnPanel');
 const learnFrame = document.getElementById('learnFrame');
 const learnPanelToggle = document.getElementById('learnPanelToggle');
 const learnToggleBtn = document.getElementById('learnToggleBtn');
+const ttsToggle = document.getElementById('ttsToggle');
 
 // Quick Route Sidebar + Settings Manager Elements
 const quickRouteBtns = document.getElementById('quickRouteBtns');
@@ -351,6 +354,8 @@ function updateAudioButtonUI() {
         audioBtnText.textContent = "Enable Sound";
         enableAudioBtn.className = "flex items-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl transition shadow-md";
     }
+    // Sound state gates the Learn iframe's TTS, so push it on every change.
+    notifyLearnTTSState();
 }
 
 enableAudioBtn.addEventListener('click', () => {
@@ -644,12 +649,52 @@ function showLearnPanel() {
         learnFrame.src = 'learn.html';
     }
     positionLearnPanel();
+    // The iframe's TTS needs the parent's read-aloud + sound state. It
+    // isn't ready until after load, so push the state on every `load`.
+    notifyLearnTTSState();
 }
 
 function hideLearnPanel() {
     learnPanel.classList.remove('visible');
     learnPanel.setAttribute('aria-hidden', 'true');
 }
+
+// Push the current TTS settings to the Learn iframe (cross-iframe bridge).
+// The Learn speech is allowed only when BOTH:
+//   - the "Read-Aloud (TTS)" setting is ON, and
+//   - the global sound is truly active (audio.enabled && audio.isRunning()).
+// Otherwise speechSynthesis / audio clips are suppressed in the iframe.
+function notifyLearnTTSState() {
+    if (!learnFrame || !learnFrame.contentWindow) return;
+    try {
+        learnFrame.contentWindow.postMessage({
+            type: 'learn-tts-state',
+            ttsEnabled: !!ttsEnabled,
+            soundActive: !!(audio.enabled && audio.isRunning())
+        }, '*');
+    } catch (err) {
+        /* iframe not ready yet — state is re-sent on its `load` event */
+    }
+}
+
+// Whenever the iframe finishes loading, (re)send the TTS state so a
+// freshly-opened panel always starts with the correct gating.
+learnFrame.addEventListener('load', notifyLearnTTSState);
+
+// The iframe asks for its TTS state on boot (in case it loaded before the
+// parent attached the `load` listener). Answer with the same message shape.
+window.addEventListener('message', (e) => {
+    if (e.source === learnFrame.contentWindow && e.data && e.data.type === 'learn-tts-query') {
+        notifyLearnTTSState();
+    }
+});
+
+// Settings TTS toggle: update state, notify the open iframe, persist.
+ttsToggle.addEventListener('change', (e) => {
+    ttsEnabled = e.target.checked;
+    notifyLearnTTSState();
+    saveSettings();
+});
 
 // Keep the panel shifted to the right of the bus schedule panel when
 // both are open on wide screens, so they never overlap.
@@ -1098,6 +1143,10 @@ if (savedSettings) {
     }
     if (typeof savedSettings.busScheduleEnabled === 'boolean') busScheduleEnabled = savedSettings.busScheduleEnabled;
     if (typeof savedSettings.learnPanelEnabled === 'boolean') learnPanelEnabled = savedSettings.learnPanelEnabled;
+    if (typeof savedSettings.ttsEnabled === 'boolean') {
+        ttsEnabled = savedSettings.ttsEnabled;
+        ttsToggle.checked = savedSettings.ttsEnabled;
+    }
     if (typeof savedSettings.speedMultiplier === 'number') speedMultiplier = Math.max(1, Math.min(60, savedSettings.speedMultiplier));
     if (typeof savedSettings.currentBusUrl === 'string' && /^https?:\/\//i.test(savedSettings.currentBusUrl)) currentBusUrl = savedSettings.currentBusUrl;
     if (savedSettings.activeRouteUrl === null || (typeof savedSettings.activeRouteUrl === 'string' && /^https?:\/\//i.test(savedSettings.activeRouteUrl))) activeRouteUrl = savedSettings.activeRouteUrl;

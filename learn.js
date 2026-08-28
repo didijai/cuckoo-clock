@@ -36,6 +36,18 @@
     let selectedType = 'math';
     let selectedCategory = 'level1';
 
+    // The currently displayed question — kept here so the TTS can speak its
+    // text and answer (see speakQuestion / speakAnswer below).
+    let currentQuestion = null;
+
+    // TTS gating. The parent clock page controls these via postMessage:
+    //   - ttsEnabled: the "Read-Aloud (TTS)" setting (default ON).
+    //   - soundActive: global sound truly running (audio.enabled && running).
+    // Speech only happens when both are true. Defaults are permissive so the
+    // module still speaks if opened without a parent (standalone / test).
+    let ttsEnabled = true;
+    let soundActive = true;
+
     // Cache TTL: questions are cached for 1 hour. Reloading the page within
     // that window returns the SAME question; after expiry a new one is made.
     const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -261,6 +273,8 @@
     function applyQuestion(q) {
         if (!q) return;
 
+        currentQuestion = q;
+
         const questionText = document.getElementById('questionText');
         const answerText = document.getElementById('answerText');
         const answerPlaceholder = document.getElementById('answerPlaceholder');
@@ -290,9 +304,39 @@
     /* ------------------------------------------------------------------
      * 5. Controls: reveal answer & request a brand-new question.
      * ------------------------------------------------------------------ */
+
+    // Speak `text` aloud, honoring the TTS + sound gates from the parent.
+    // The LearnTTS.speak() call handles the one-time engine probe internally
+    // (awaited before the first real utterance) so no separate probe call is
+    // needed here.
+    function speakWith(text) {
+        if (!text || !window.LearnTTS) return;
+        if (!ttsEnabled || !soundActive) return; // gated by parent settings
+        window.LearnTTS.speak(text);
+    }
+
+    // Speak the current question's text ("3 + 4" -> "3 plus 4").
+    function speakQuestion() {
+        const q = currentQuestion;
+        if (!q) return;
+        const spokenText = q.text
+            .replace(/\+/g, ' plus ')
+            .replace(/-/g, ' minus ')
+            .trim();
+        speakWith(spokenText);
+    }
+
+    // Speak the current question's answer ("7").
+    function speakAnswer() {
+        const q = currentQuestion;
+        if (!q) return;
+        speakWith(q.answer);
+    }
+
     function wireActions() {
         const revealBtn = document.getElementById('revealBtn');
         const newBtn = document.getElementById('newQuestionBtn');
+        const questionCard = document.querySelector('.question-card');
 
         if (revealBtn) {
             revealBtn.addEventListener('click', () => {
@@ -300,6 +344,7 @@
                 const placeholder = document.getElementById('answerPlaceholder');
                 if (answerText) answerText.hidden = false;
                 if (placeholder) placeholder.hidden = true;
+                speakAnswer(); // reveal + read the answer out loud
             });
         }
 
@@ -308,9 +353,47 @@
                 const q = generateFreshQuestion(); // bypass cache, new cache stamp
                 if (q) applyQuestion(q);
                 updateCacheIndicators();
+                speakQuestion(); // read the new question out loud
             });
         }
+
+        // Clicking the question card re-reads the question.
+        if (questionCard) {
+            questionCard.addEventListener('click', () => speakQuestion());
+        }
     }
+
+    /* ------------------------------------------------------------------
+     * 5b. Parent link: receive TTS + sound state from the clock page.
+     *     The clock toggles "Read-Aloud (TTS)" and global sound; those are
+     *     pushed here so the iframe's speech matches both switches.
+     * ------------------------------------------------------------------ */
+    window.addEventListener('message', (e) => {
+        const data = e.data;
+        if (!data || data.type !== 'learn-tts-state') return;
+        if (typeof data.ttsEnabled === 'boolean') ttsEnabled = data.ttsEnabled;
+        if (typeof data.soundActive === 'boolean') soundActive = data.soundActive;
+    });
+
+    // Ask the parent for the current state once we're live (in case the
+    // iframe was already loaded before the parent attached its bridge).
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'learn-tts-query' }, '*');
+    }
+
+    // Initialize TTS on the FIRST interaction anywhere (any click/tap/key),
+    // inside a real user gesture. This resolves the preferred female voice
+    // and proves the engine BEFORE the user presses Reveal/New Question, so
+    // the first spoken question/answer already uses the correct voice and is
+    // never a "cold start" with a different/default voice.
+    let ttsInitialized = false;
+    const initTTSOnFirstGesture = () => {
+        if (ttsInitialized || !window.LearnTTS || !ttsEnabled || !soundActive) return;
+        ttsInitialized = true;
+        window.LearnTTS.init();
+    };
+    ['pointerdown', 'pointerup', 'click', 'keydown', 'touchstart', 'touchend']
+        .forEach(evt => document.addEventListener(evt, initTTSOnFirstGesture, { once: true, capture: true }));
 
     /* ------------------------------------------------------------------
      * 6. Boot.

@@ -41,6 +41,18 @@
                 <span id="audioBtnText" class="hidden sm:inline">Enable Sound</span>
             </button>
 
+            <!-- Learn Panel Shortcut: one-tap toggle of the learning module
+                 (Math -> Addition for now). Same pattern as the bus-schedule
+                 launcher; also controllable from Settings. -->
+            <button id="learnToggleBtn" title="Toggle Learn Panel"
+                class="flex items-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold text-xs rounded-xl transition shadow-md">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0-6l-6.5-3.5M12 14l6.5-3.5" />
+                </svg>
+                <span class="hidden sm:inline">Learn</span>
+            </button>
+
             <!-- Floating Settings Gear Button -->
             <button id="openSettingsBtn" title="Open Settings Panel"
                 class="p-2.5 sm:p-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold rounded-2xl shadow-2xl transition-all border border-amber-400/50 flex items-center justify-center group">
@@ -635,6 +647,20 @@
         <iframe id="busFrame" title="HK Bus Schedule (hkbus.app)" loading="lazy"></iframe>
     </aside>
 
+    <!-- Learn Panel: left-docked learning module (Math -> Addition for now).
+         Docked on the LEFT like the busy panel. Its CONTENT lives in the
+         fully self-contained learn.html / learn.js (loaded via iframe), so
+         the panel owns its selection, question rules and 1-hour cache. The
+         parent page only shows/hides this wrapper and reserves screen space.
+         If the bus schedule panel is also open, this panel shifts to the
+         right of it to avoid overlap. -->
+    <aside id="learnPanel" aria-hidden="true">
+        <!-- No src here: the iframe is lazy-loaded on first open (see
+             showLearnPanel() in script.js) so the page stays fast when the
+             feature is never used. -->
+        <iframe id="learnFrame" title="Learn Panel (Math Addition)"></iframe>
+    </aside>
+
     <!-- Quick Route Sidebar: one-tap shortcuts that open the bus schedule
          panel pre-loaded with a specific route. Buttons are generated from
          the user-managed shortcut list (Settings -> Bus Route Shortcuts,
@@ -824,6 +850,19 @@
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="busScheduleToggle" class="sr-only peer">
+                        <div
+                            class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
+                        </div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex flex-col">
+                        <span class="text-slate-300 font-medium">Show Learning Panel</span>
+                        <span class="text-[10px] text-slate-500">Math (Addition) learning module docked left</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="learnPanelToggle" class="sr-only peer">
                         <div
                             class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
                         </div>

@@ -1,583 +1,641 @@
-        body {
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-            color: #f8fafc;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .cinzel {
-            font-family: 'Cinzel', serif;
-        }
-
-        /* Wood Textures and Gradients */
-        .wood-dark {
-            background: linear-gradient(180deg, #3d2314 0%, #26140a 100%);
-        }
-
-        .wood-medium {
-            background: linear-gradient(180deg, #5c3a21 0%, #422815 100%);
-        }
-
-        .wood-light {
-            background: linear-gradient(180deg, #8a5a36 0%, #684123 100%);
-        }
-
-        /* Clock Animation Elements */
-        .pendulum-container {
-            transform-origin: top center;
-            animation: swing 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes swing {
-            0% {
-                transform: rotate(-12deg);
-            }
-
-            100% {
-                transform: rotate(12deg);
-            }
-        }
-
-        .wheel-rotate {
-            animation: rotateWheel 12s linear infinite;
-            transform-origin: center;
-        }
-
-        @keyframes rotateWheel {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Cuckoo Door & Bird Animations */
-        .door-left {
-            transform-origin: left center;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .door-right {
-            transform-origin: right center;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .doors-open .door-left {
-            transform: rotateY(-110deg);
-        }
-
-        .doors-open .door-right {
-            transform: rotateY(110deg);
-        }
-
-        .cuckoo-bird {
-            transform: translate(-50%, 20px) scale(0.2);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            opacity: 0;
-        }
-
-        .cuckoo-active .cuckoo-bird {
-            transform: translate(-50%, -10px) scale(1);
-            opacity: 1;
-        }
-
-        .cuckoo-singing .wing-left {
-            animation: flapLeft 0.25s infinite alternate;
-        }
-
-        .cuckoo-singing .wing-right {
-            animation: flapRight 0.25s infinite alternate;
-        }
-
-        .cuckoo-singing .beak {
-            animation: openBeak 0.25s infinite alternate;
-        }
-
-        @keyframes flapLeft {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(-35deg);
-            }
-        }
-
-        @keyframes flapRight {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(35deg);
-            }
-        }
-
-        @keyframes openBeak {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(-20deg);
-            }
-        }
-
-        /* Modal & Overlay */
-        .modal-overlay {
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-
-        .modal-overlay.hidden-modal {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .modal-card {
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-        }
-
-        .modal-overlay.hidden-modal .modal-card {
-            transform: scale(0.9) translateY(20px);
-            opacity: 0;
-        }
-
-        /* Animated Dancers Balcony */
-        .dancer-carousel {
-            transition: transform 0.5s ease;
-        }
-
-        .dancing-active .dancer-carousel {
-            animation: rotateDancers 4s linear infinite;
-        }
-
-        @keyframes rotateDancers {
-            from {
-                transform: rotateY(0deg);
-            }
-
-            to {
-                transform: rotateY(360deg);
-            }
-        }
-
-        /* Chimney Smoke Animation */
-        .smoke-puff {
-            animation: smokeRise 3s infinite linear;
-            transform-origin: bottom center;
-        }
-
-        .smoke-puff-2 {
-            animation: smokeRise 3.5s infinite linear 1.2s;
-            transform-origin: bottom center;
-        }
-
-        @keyframes smokeRise {
-            0% {
-                transform: translateY(0) scale(0.4);
-                opacity: 0.8;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-
-            100% {
-                transform: translateY(-40px) scale(1.8);
-                opacity: 0;
-            }
-        }
-
-        /* Woodcutter Chopping Animation */
-        .chopping-active .woodcutter-arm {
-            animation: chopWood 0.8s ease-in-out infinite alternate;
-            transform-origin: 35px 25px;
-        }
-
-        @keyframes chopWood {
-            0% {
-                transform: rotate(-35deg);
-            }
-
-            100% {
-                transform: rotate(25deg);
-            }
-        }
-
-        /* Chalet Window Glow */
-        .window-glow {
-            box-shadow: 0 0 15px rgba(251, 191, 36, 0.7);
-            animation: candleFlicker 4s ease-in-out infinite alternate;
-        }
-
-        @keyframes candleFlicker {
-            0% {
-                opacity: 0.85;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                opacity: 0.75;
-            }
-        }
-
-        /* Stepless Time Slider */
-        .time-slider {
-            background: linear-gradient(to right, #1e293b 0%, #78350f 50%, #1e293b 100%);
-            border: 1px solid #334155;
-        }
-
-        .time-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 40% 35%, #fcd34d, #d97706 60%, #92400e);
-            border: 2px solid #fef3c7;
-            box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
-            cursor: pointer;
-            transition: box-shadow 0.2s;
-        }
-
-        .time-slider::-webkit-slider-thumb:hover {
-            box-shadow: 0 0 18px rgba(217, 119, 6, 0.9), 0 2px 8px rgba(0, 0, 0, 0.7);
-        }
-
-        .time-slider::-moz-range-thumb {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 40% 35%, #fcd34d, #d97706 60%, #92400e);
-            border: 2px solid #fef3c7;
-            box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
-            cursor: pointer;
-        }
-
-        .time-slider::-webkit-slider-runnable-track {
-            height: 12px;
-            border-radius: 9999px;
-        }
-
-        .time-slider::-moz-range-track {
-            height: 12px;
-            border-radius: 9999px;
-            background: linear-gradient(to right, #1e293b 0%, #78350f 50%, #1e293b 100%);
-            border: 1px solid #334155;
-        }
-
-        /* ===== Side Alpine Decorations ===== */
-
-        /* Owl blink animation */
-        @keyframes owlBlink {
-            0%, 90%, 100% { transform: scaleY(1); }
-            93%, 97% { transform: scaleY(0.08); }
-        }
-        .owl-eye { animation: owlBlink 4s ease-in-out infinite; transform-origin: center; }
-        .owl-eye-r { animation: owlBlink 4s ease-in-out infinite 0.08s; transform-origin: center; }
-
-        /* Owl body gentle bob */
-        @keyframes owlBob {
-            0%, 100% { transform: translateY(0px) rotate(-2deg); }
-            50% { transform: translateY(-3px) rotate(2deg); }
-        }
-        .owl-body { animation: owlBob 3s ease-in-out infinite; }
-
-        /* Snow drift on pine */
-        @keyframes snowDrift {
-            0%, 100% { opacity: 0.9; transform: translateX(0px); }
-            50% { opacity: 0.6; transform: translateX(2px); }
-        }
-        .snow-cap { animation: snowDrift 5s ease-in-out infinite; }
-
-        /* Lantern flame flicker */
-        @keyframes flameDance {
-            0%, 100% { transform: scale(1) rotate(-3deg); opacity: 1; }
-            25% { transform: scale(1.05, 0.95) rotate(3deg); opacity: 0.9; }
-            50% { transform: scale(0.97, 1.05) rotate(-2deg); opacity: 1; }
-            75% { transform: scale(1.03, 0.97) rotate(2deg); opacity: 0.85; }
-        }
-        .lantern-flame { animation: flameDance 0.7s ease-in-out infinite; transform-origin: bottom center; }
-        .lantern-glow {
-            box-shadow: 0 0 18px 6px rgba(251, 191, 36, 0.55), 0 0 6px 2px rgba(251, 191, 36, 0.8);
-            animation: candleFlicker 1.2s ease-in-out infinite alternate;
-        }
-
-        /* Deer gentle walk cycle (idle sway) */
-        @keyframes deerSway {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-2px); }
-        }
-        .deer-body { animation: deerSway 2.5s ease-in-out infinite; }
-
-        /* Flowers gentle wave */
-        @keyframes flowerSway {
-            0%, 100% { transform: rotate(-4deg); }
-            50% { transform: rotate(4deg); }
-        }
-        .flower-stem { animation: flowerSway 2s ease-in-out infinite; transform-origin: bottom center; }
-        .flower-stem-2 { animation: flowerSway 2.4s ease-in-out infinite 0.3s; transform-origin: bottom center; }
-        .flower-stem-3 { animation: flowerSway 1.8s ease-in-out infinite 0.6s; transform-origin: bottom center; }
-
-        /* Water ripple */
-        @keyframes waterRipple {
-            0% { transform: scaleX(0.4) scaleY(0.6); opacity: 0.7; }
-            100% { transform: scaleX(1.4) scaleY(0.3); opacity: 0; }
-        }
-        .water-ripple { animation: waterRipple 1.4s ease-out infinite; transform-origin: center; }
-        .water-ripple-2 { animation: waterRipple 1.4s ease-out infinite 0.7s; transform-origin: center; }
-
-        /* Bird flutter on branch */
-        @keyframes birdFlap {
-            0%, 60%, 100% { transform: scaleY(1); }
-            65%, 75% { transform: scaleY(0.3); }
-            70% { transform: scaleY(1.2); }
-        }
-        .bird-wing { animation: birdFlap 5s ease-in-out infinite; transform-origin: right center; }
-        .bird-wing-r { animation: birdFlap 5s ease-in-out infinite 0.05s; transform-origin: left center; }
-
-        /* ===== Floating Digital Time Display =====
-           Absolutely positioned overlay so toggling it never changes the
-           document flow / clock stage size. Clock keeps its exact scale.
-           Anchored to the BOTTOM-RIGHT corner so it never collides with
-           the bus schedule panel docked on the LEFT edge. */
-        #digitalTimeOverlay {
-            position: fixed;
-            right: 12px;
-            bottom: 12px;
-            transform: none;
-            z-index: 30;
-            pointer-events: none;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.35s ease, visibility 0.35s ease;
-        }
-        #digitalTimeOverlay.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-        .digital-time-card {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 18px;
-            background: rgba(15, 23, 42, 0.78);
-            border: 1px solid rgba(217, 119, 6, 0.45);
-            border-radius: 14px;
-            box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), 0 0 14px rgba(217, 119, 6, 0.25) inset;
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-        }
-        #digitalTimeText {
-            font-family: 'Inter', sans-serif;
-            font-variant-numeric: tabular-nums;
-            font-weight: 700;
-            font-size: 22px;
-            letter-spacing: 2px;
-            color: #fbbf24;
-            text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
-            line-height: 1;
-        }
-        .digital-time-label {
-            font-size: 9px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #fcd34d;
-            opacity: 0.7;
-            font-weight: 600;
-        }
-        @media (max-width: 480px) {
-            #digitalTimeText { font-size: 18px; letter-spacing: 1px; }
-            .digital-time-card { padding: 6px 14px; gap: 8px; }
-        }
-
-        /* ===== Bus Schedule Side Panel =====
-           Docked overlay on the LEFT edge; embeds hkbus.app so no schedule
-           UI needs to be developed here. Hidden by default; toggled via
-           Settings. While visible, fitClockToScreen() reserves this panel's
-           width and re-centers the clock in the remaining right-hand space. */
-        #busPanel {
-            position: fixed;
-            left: 16px;
-            top: 92px;
-            bottom: 16px;
-            width: min(420px, 36vw);
-            z-index: 35;
-            display: flex;
-            flex-direction: column;
-            background: rgba(15, 23, 42, 0.94);
-            border: 1px solid rgba(217, 119, 6, 0.45);
-            border-radius: 18px;
-            box-shadow: 0 10px 34px rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            overflow: hidden;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateX(-16px);
-            transition: opacity 0.3s ease, visibility 0.3s ease,
-                transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        #busPanel.visible {
-            opacity: 1;
-            visibility: visible;
-            transform: none;
-        }
-
-        .bus-panel-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            background: linear-gradient(180deg, #3d2314 0%, #26140a 100%);
-            border-bottom: 1px solid rgba(217, 119, 6, 0.4);
-            flex-shrink: 0;
-        }
-
-        .bus-panel-title {
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            font-size: 14px;
-            color: #fcd34d;
-            letter-spacing: 0.5px;
-            line-height: 1.2;
-        }
-
-        .bus-panel-subtitle {
-            font-size: 9px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #fbbf24;
-            opacity: 0.65;
-            font-weight: 600;
-        }
-
-        .bus-panel-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 30px;
-            height: 30px;
-            border-radius: 9px;
-            border: 1px solid rgba(217, 119, 6, 0.45);
-            background: rgba(120, 53, 15, 0.55);
-            color: #fbbf24;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.15s;
-        }
-
-        .bus-panel-btn:hover {
-            background: rgba(180, 83, 9, 0.75);
-        }
-
-        .bus-panel-btn:active {
-            transform: scale(0.92);
-        }
-
-        #busFrame {
-            width: 100%;
-            height: 100%;
-            border: 0;
-            background: #0f172a;
-            flex: 1;
-            min-height: 0;
-        }
-
-        /* Small screens: the panel covers most of the viewport as an overlay
-           instead of squeezing the clock into a sliver. */
-        @media (max-width: 639px) {
-            #busPanel {
-                left: 12px;
-                right: 12px;
-                top: 76px;
-                bottom: 12px;
-                width: auto;
-                z-index: 45;
-            }
-        }
-
-        /* ===== Quick Route Sidebar =====
-           Slim launcher docked on the RIGHT edge, vertically centered.
-           Each button opens the bus schedule panel with a specific route
-           pre-selected (routes are managed in Settings and stored in
-           localStorage). fitClockToScreen() reserves ~72px on the right
-           so the clock never slides underneath this strip. */
-        #quickSidebar {
-            position: fixed;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 36;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            padding: 7px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(217, 119, 6, 0.4);
-            border-radius: 16px;
-            box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
-
-        .quick-sidebar-icon {
-            display: flex;
-            color: #fbbf24;
-            opacity: 0.85;
-            padding-bottom: 3px;
-            border-bottom: 1px solid rgba(217, 119, 6, 0.35);
-        }
-
-        .quick-route-btn {
-            width: 46px;
-            height: 46px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            border: 1px solid rgba(217, 119, 6, 0.35);
-            background: rgba(120, 53, 15, 0.5);
-            color: #fbbf24;
-            font-family: 'Inter', sans-serif;
-            font-weight: 800;
-            font-size: 11px;
-            letter-spacing: 0.5px;
-            line-height: 1;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-        }
-
-        .quick-route-btn:hover {
-            background: rgba(180, 83, 9, 0.7);
-            transform: translateX(-2px);
-        }
-
-        .quick-route-btn:active {
-            transform: scale(0.92);
-        }
-
-        /* Highlighted while its route is the one loaded in the panel */
-        .quick-route-btn.active {
-            background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
-            color: #1c1917;
-            border-color: rgba(251, 191, 36, 0.8);
-            box-shadow: 0 0 12px rgba(217, 119, 6, 0.55);
-        }
-
-        /* Tiny screens: keep the strip reachable but slimmer */
-        @media (max-width: 479px) {
-            .quick-route-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 10px;
-            }
-        }
+body {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.cinzel {
+    font-family: 'Cinzel', serif;
+}
+
+/* Wood Textures and Gradients */
+.wood-dark {
+    background: linear-gradient(180deg, #3d2314 0%, #26140a 100%);
+}
+
+.wood-medium {
+    background: linear-gradient(180deg, #5c3a21 0%, #422815 100%);
+}
+
+.wood-light {
+    background: linear-gradient(180deg, #8a5a36 0%, #684123 100%);
+}
+
+/* Clock Animation Elements */
+.pendulum-container {
+    transform-origin: top center;
+    animation: swing 2s ease-in-out infinite alternate;
+}
+
+@keyframes swing {
+    0% {
+        transform: rotate(-12deg);
+    }
+
+    100% {
+        transform: rotate(12deg);
+    }
+}
+
+.wheel-rotate {
+    animation: rotateWheel 12s linear infinite;
+    transform-origin: center;
+}
+
+@keyframes rotateWheel {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Cuckoo Door & Bird Animations */
+.door-left {
+    transform-origin: left center;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.door-right {
+    transform-origin: right center;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.doors-open .door-left {
+    transform: rotateY(-110deg);
+}
+
+.doors-open .door-right {
+    transform: rotateY(110deg);
+}
+
+.cuckoo-bird {
+    transform: translate(-50%, 20px) scale(0.2);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0;
+}
+
+.cuckoo-active .cuckoo-bird {
+    transform: translate(-50%, -10px) scale(1);
+    opacity: 1;
+}
+
+.cuckoo-singing .wing-left {
+    animation: flapLeft 0.25s infinite alternate;
+}
+
+.cuckoo-singing .wing-right {
+    animation: flapRight 0.25s infinite alternate;
+}
+
+.cuckoo-singing .beak {
+    animation: openBeak 0.25s infinite alternate;
+}
+
+@keyframes flapLeft {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(-35deg);
+    }
+}
+
+@keyframes flapRight {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(35deg);
+    }
+}
+
+@keyframes openBeak {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(-20deg);
+    }
+}
+
+/* Modal & Overlay */
+.modal-overlay {
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.hidden-modal {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.modal-card {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.modal-overlay.hidden-modal .modal-card {
+    transform: scale(0.9) translateY(20px);
+    opacity: 0;
+}
+
+/* Animated Dancers Balcony */
+.dancer-carousel {
+    transition: transform 0.5s ease;
+}
+
+.dancing-active .dancer-carousel {
+    animation: rotateDancers 4s linear infinite;
+}
+
+@keyframes rotateDancers {
+    from {
+        transform: rotateY(0deg);
+    }
+
+    to {
+        transform: rotateY(360deg);
+    }
+}
+
+/* Chimney Smoke Animation */
+.smoke-puff {
+    animation: smokeRise 3s infinite linear;
+    transform-origin: bottom center;
+}
+
+.smoke-puff-2 {
+    animation: smokeRise 3.5s infinite linear 1.2s;
+    transform-origin: bottom center;
+}
+
+@keyframes smokeRise {
+    0% {
+        transform: translateY(0) scale(0.4);
+        opacity: 0.8;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(-40px) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* Woodcutter Chopping Animation */
+.chopping-active .woodcutter-arm {
+    animation: chopWood 0.8s ease-in-out infinite alternate;
+    transform-origin: 35px 25px;
+}
+
+@keyframes chopWood {
+    0% {
+        transform: rotate(-35deg);
+    }
+
+    100% {
+        transform: rotate(25deg);
+    }
+}
+
+/* Chalet Window Glow */
+.window-glow {
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.7);
+    animation: candleFlicker 4s ease-in-out infinite alternate;
+}
+
+@keyframes candleFlicker {
+    0% {
+        opacity: 0.85;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.75;
+    }
+}
+
+/* Stepless Time Slider */
+.time-slider {
+    background: linear-gradient(to right, #1e293b 0%, #78350f 50%, #1e293b 100%);
+    border: 1px solid #334155;
+}
+
+.time-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #fcd34d, #d97706 60%, #92400e);
+    border: 2px solid #fef3c7;
+    box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+.time-slider::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 18px rgba(217, 119, 6, 0.9), 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.time-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #fcd34d, #d97706 60%, #92400e);
+    border: 2px solid #fef3c7;
+    box-shadow: 0 0 10px rgba(217, 119, 6, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.time-slider::-webkit-slider-runnable-track {
+    height: 12px;
+    border-radius: 9999px;
+}
+
+.time-slider::-moz-range-track {
+    height: 12px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, #1e293b 0%, #78350f 50%, #1e293b 100%);
+    border: 1px solid #334155;
+}
+
+/* ===== Side Alpine Decorations ===== */
+
+/* Owl blink animation */
+@keyframes owlBlink {
+    0%, 90%, 100% { transform: scaleY(1); }
+    93%, 97% { transform: scaleY(0.08); }
+}
+.owl-eye { animation: owlBlink 4s ease-in-out infinite; transform-origin: center; }
+.owl-eye-r { animation: owlBlink 4s ease-in-out infinite 0.08s; transform-origin: center; }
+
+/* Owl body gentle bob */
+@keyframes owlBob {
+    0%, 100% { transform: translateY(0px) rotate(-2deg); }
+    50% { transform: translateY(-3px) rotate(2deg); }
+}
+.owl-body { animation: owlBob 3s ease-in-out infinite; }
+
+/* Snow drift on pine */
+@keyframes snowDrift {
+    0%, 100% { opacity: 0.9; transform: translateX(0px); }
+    50% { opacity: 0.6; transform: translateX(2px); }
+}
+.snow-cap { animation: snowDrift 5s ease-in-out infinite; }
+
+/* Lantern flame flicker */
+@keyframes flameDance {
+    0%, 100% { transform: scale(1) rotate(-3deg); opacity: 1; }
+    25% { transform: scale(1.05, 0.95) rotate(3deg); opacity: 0.9; }
+    50% { transform: scale(0.97, 1.05) rotate(-2deg); opacity: 1; }
+    75% { transform: scale(1.03, 0.97) rotate(2deg); opacity: 0.85; }
+}
+.lantern-flame { animation: flameDance 0.7s ease-in-out infinite; transform-origin: bottom center; }
+.lantern-glow {
+    box-shadow: 0 0 18px 6px rgba(251, 191, 36, 0.55), 0 0 6px 2px rgba(251, 191, 36, 0.8);
+    animation: candleFlicker 1.2s ease-in-out infinite alternate;
+}
+
+/* Deer gentle walk cycle (idle sway) */
+@keyframes deerSway {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-2px); }
+}
+.deer-body { animation: deerSway 2.5s ease-in-out infinite; }
+
+/* Flowers gentle wave */
+@keyframes flowerSway {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
+}
+.flower-stem { animation: flowerSway 2s ease-in-out infinite; transform-origin: bottom center; }
+.flower-stem-2 { animation: flowerSway 2.4s ease-in-out infinite 0.3s; transform-origin: bottom center; }
+.flower-stem-3 { animation: flowerSway 1.8s ease-in-out infinite 0.6s; transform-origin: bottom center; }
+
+/* Water ripple */
+@keyframes waterRipple {
+    0% { transform: scaleX(0.4) scaleY(0.6); opacity: 0.7; }
+    100% { transform: scaleX(1.4) scaleY(0.3); opacity: 0; }
+}
+.water-ripple { animation: waterRipple 1.4s ease-out infinite; transform-origin: center; }
+.water-ripple-2 { animation: waterRipple 1.4s ease-out infinite 0.7s; transform-origin: center; }
+
+/* Bird flutter on branch */
+@keyframes birdFlap {
+    0%, 60%, 100% { transform: scaleY(1); }
+    65%, 75% { transform: scaleY(0.3); }
+    70% { transform: scaleY(1.2); }
+}
+.bird-wing { animation: birdFlap 5s ease-in-out infinite; transform-origin: right center; }
+.bird-wing-r { animation: birdFlap 5s ease-in-out infinite 0.05s; transform-origin: left center; }
+
+/* ===== Floating Digital Time Display =====
+    Absolutely positioned overlay so toggling it never changes the
+    document flow / clock stage size. Clock keeps its exact scale.
+    Anchored to the BOTTOM-RIGHT corner so it never collides with
+    the bus schedule panel docked on the LEFT edge. */
+#digitalTimeOverlay {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    transform: none;
+    z-index: 30;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+#digitalTimeOverlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+.digital-time-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px;
+    background: rgba(15, 23, 42, 0.78);
+    border: 1px solid rgba(217, 119, 6, 0.45);
+    border-radius: 14px;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), 0 0 14px rgba(217, 119, 6, 0.25) inset;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+#digitalTimeText {
+    font-family: 'Inter', sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
+    line-height: 1;
+}
+.digital-time-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fcd34d;
+    opacity: 0.7;
+    font-weight: 600;
+}
+@media (max-width: 480px) {
+    #digitalTimeText { font-size: 18px; letter-spacing: 1px; }
+    .digital-time-card { padding: 6px 14px; gap: 8px; }
+}
+
+/* ===== Bus Schedule Side Panel =====
+    Docked overlay on the LEFT edge; embeds hkbus.app so no schedule
+    UI needs to be developed here. Hidden by default; toggled via
+    Settings. While visible, fitClockToScreen() reserves this panel's
+    width and re-centers the clock in the remaining right-hand space. */
+#busPanel {
+    position: fixed;
+    left: 16px;
+    top: 92px;
+    bottom: 16px;
+    width: min(420px, 36vw);
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    background: rgba(15, 23, 42, 0.94);
+    border: 1px solid rgba(217, 119, 6, 0.45);
+    border-radius: 18px;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-16px);
+    transition: opacity 0.3s ease, visibility 0.3s ease,
+        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#busPanel.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+}
+
+.bus-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: linear-gradient(180deg, #3d2314 0%, #26140a 100%);
+    border-bottom: 1px solid rgba(217, 119, 6, 0.4);
+    flex-shrink: 0;
+}
+
+.bus-panel-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #fcd34d;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+}
+
+.bus-panel-subtitle {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #fbbf24;
+    opacity: 0.65;
+    font-weight: 600;
+}
+
+.bus-panel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    border: 1px solid rgba(217, 119, 6, 0.45);
+    background: rgba(120, 53, 15, 0.55);
+    color: #fbbf24;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.bus-panel-btn:hover {
+    background: rgba(180, 83, 9, 0.75);
+}
+
+.bus-panel-btn:active {
+    transform: scale(0.92);
+}
+
+#busFrame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #0f172a;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Small screens: the panel covers most of the viewport as an overlay
+    instead of squeezing the clock into a sliver. */
+@media (max-width: 639px) {
+    #busPanel {
+        left: 12px;
+        right: 12px;
+        top: 76px;
+        bottom: 12px;
+        width: auto;
+        z-index: 45;
+    }
+}
+
+/* ===== Quick Route Sidebar =====
+    Slim launcher docked on the RIGHT edge, vertically centered.
+    Each button opens the bus schedule panel with a specific route
+    pre-selected (routes are managed in Settings and stored in
+    localStorage). fitClockToScreen() reserves ~72px on the right
+    so the clock never slides underneath this strip. */
+#quickSidebar {
+    position: fixed;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 36;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 7px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(217, 119, 6, 0.4);
+    border-radius: 16px;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.quick-sidebar-icon {
+    display: flex;
+    color: #fbbf24;
+    opacity: 0.85;
+    padding-bottom: 3px;
+    border-bottom: 1px solid rgba(217, 119, 6, 0.35);
+}
+
+.quick-route-btn {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1px solid rgba(217, 119, 6, 0.35);
+    background: rgba(120, 53, 15, 0.5);
+    color: #fbbf24;
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.quick-route-btn:hover {
+    background: rgba(180, 83, 9, 0.7);
+    transform: translateX(-2px);
+}
+
+.quick-route-btn:active {
+    transform: scale(0.92);
+}
+
+/* Highlighted while its route is the one loaded in the panel */
+.quick-route-btn.active {
+    background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+    color: #1c1917;
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 12px rgba(217, 119, 6, 0.55);
+}
+
+/* Tiny screens: keep the strip reachable but slimmer */
+@media (max-width: 479px) {
+    .quick-route-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 10px;
+    }
+}
+
+/* ===== Learn Panel =====
+    Left-docked module embedding the self-contained learn.html (Math
+    -> Addition). Mirrors #busPanel so both can sit side by side on
+    the left: on wide screens the narrower panel (default first) is
+    shifted right of the bus panel when both are open (position is
+    managed in JS via positionLearnPanel()). Below 640px it becomes
+    a near-fullscreen overlay like the bus panel. */
+#learnPanel {
+    position: fixed;
+    left: 16px;
+    top: 92px;
+    bottom: 16px;
+    width: min(320px, 30vw);
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    background: rgba(15, 23, 42, 0.94);
+    border: 1px solid rgba(217, 119, 6, 0.45);
+    border-radius: 18px;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-16px);
+    transition: opacity 0.3s ease, visibility 0.3s ease,
+        left 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#learnPanel.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+}
+
+#learnFrame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #0f172a;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Small screens: panel covers most of the viewport as an overlay. */
+@media (max-width: 639px) {
+    #learnPanel {
+        left: 12px;
+        right: 12px;
+        top: 76px;
+        bottom: 12px;
+        width: auto;
+        z-index: 44;
+    }
+}

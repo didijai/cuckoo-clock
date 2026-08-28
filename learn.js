@@ -24,7 +24,7 @@
             label: 'Math',
             enabled: true,
             categories: {
-                addition: { label: 'Addition', enabled: true }
+                level1: { label: 'Level 1', enabled: true }
             }
         },
         english: { label: 'English', enabled: false },
@@ -34,7 +34,7 @@
 
     // Selected state (defaults to the first implemented combination).
     let selectedType = 'math';
-    let selectedCategory = 'addition';
+    let selectedCategory = 'level1';
 
     // Cache TTL: questions are cached for 1 hour. Reloading the page within
     // that window returns the SAME question; after expiry a new one is made.
@@ -45,19 +45,58 @@
        is a pure function returning a fresh question {text, answer, hint}. */
     const GENERATORS = {
         math: {
-            // Addition for very young kids: two single-digit (1–9) addends.
+            // "Level 1" — mixes four kid-friendly rule types at random:
+            //   (1) two single-digit addends whose sum is < 10,
+            //   (2) one single-digit number + a multiple of 10,
+            //   (3) two 2-digit multiples of 10 (10/20/30…) totalling <= 90,
+            //   (4) subtraction of two single digits (result never negative).
             // No user input — the answer is revealed on demand.
-            addition: function () {
+            level1: function () {
                 const randInt = (min, max) =>
                     Math.floor(Math.random() * (max - min + 1)) + min;
-                const a = randInt(1, 9);
-                const b = randInt(1, 9);
+
+                const caseId = randInt(1, 4);
+                let a, b, text, answer, operator;
+
+                if (caseId === 1) {
+                    // Both single-digit, sum strictly less than 10.
+                    a = randInt(1, 8);
+                    b = randInt(1, 9 - a); // keeps a + b <= 9
+                    operator = '+';
+                } else if (caseId === 2) {
+                    // Single-digit number plus a multiple of 10 (10..90).
+                    a = randInt(1, 9);
+                    b = randInt(1, 9) * 10;
+                    operator = '+';
+                } else if (caseId === 3) {
+                    // Two 2-digit numbers, both multiples of 10, total <= 90.
+                    a = randInt(1, 8) * 10;        // 10..80
+                    b = randInt(1, (90 - a) / 10) * 10; // 10..(90-a)
+                    operator = '+';
+                } else {
+                    // Subtraction of two single digits, never negative.
+                    a = randInt(1, 9);
+                    b = randInt(1, a); // b <= a, so a - b >= 0
+                    operator = '-';
+                }
+
+                text = `${a} ${operator} ${b}`;
+                answer = String(operator === '+' ? a + b : a - b);
+
+                // `prompt` is owned by the generator (not inferred from the
+                // operator in applyQuestion) so any future category can supply
+                // any wording — Math-specific terms like "sum"/"difference" do
+                // not leak into the generic renderer.
+                const prompt = operator === '-' ? 'What is the difference?' : 'What is the sum?';
+
                 return {
                     type: 'math',
-                    category: 'addition',
-                    text: `${a} + ${b}`,
-                    answer: String(a + b),
-                    hint: null
+                    category: 'level1',
+                    text,
+                    answer,
+                    hint: null,
+                    operator,
+                    prompt
                 };
             }
         }
@@ -220,10 +259,16 @@
     }
 
     function applyQuestion(q) {
+        if (!q) return;
+
         const questionText = document.getElementById('questionText');
         const answerText = document.getElementById('answerText');
         const answerPlaceholder = document.getElementById('answerPlaceholder');
+        const questionPrompt = document.getElementById('questionPrompt');
 
+        // Prefer the generator's own prompt; fall back to a neutral default
+        // for legacy/unknown questions so the element is never left stale.
+        if (questionPrompt) questionPrompt.textContent = q.prompt || 'What is the answer?';
         if (questionText) questionText.textContent = q.text;
         if (answerText) {
             answerText.textContent = q.answer;

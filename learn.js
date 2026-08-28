@@ -394,7 +394,13 @@
     const initTTSOnFirstGesture = () => {
         if (ttsInitialized || !window.LearnTTS || !ttsEnabled || !soundActive) return;
         ttsInitialized = true;
-        window.LearnTTS.init();
+        // TTS init is best-effort only — it must never throw and break the
+        // rest of the panel (e.g. on a browser with no speech engine).
+        try {
+            window.LearnTTS.init();
+        } catch (e) {
+            console.warn('[Learn] TTS init failed (continuing silently):', e);
+        }
     };
     ['pointerdown', 'pointerup', 'click', 'keydown', 'touchstart', 'touchend']
         .forEach(evt => document.addEventListener(evt, initTTSOnFirstGesture, { once: true, capture: true }));
@@ -402,10 +408,18 @@
     /* ------------------------------------------------------------------
      * 6. Boot.
      * ------------------------------------------------------------------ */
+    // Render the panel independently of TTS. Each render step is isolated
+    // in try/catch so a failure in one (or in an external script like the
+    // TTS helper) can never leave the whole panel blank. The static header
+    // in learn.html always shows; this ensures the dynamic body does too.
     document.addEventListener('DOMContentLoaded', () => {
-        renderTypeChips();
-        renderCategoryChips();
-        wireActions();
-        refreshBody();
+        try {
+            renderTypeChips();
+            renderCategoryChips();
+            wireActions();
+            refreshBody();
+        } catch (err) {
+            console.error('[Learn] boot failed:', err);
+        }
     });
 })();

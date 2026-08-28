@@ -45,9 +45,15 @@
      * Voice list (top of the detection ladder).
      * ------------------------------------------------------------------ */
     function refreshVoiceState() {
-        voices = ('speechSynthesis' in window)
-            ? window.speechSynthesis.getVoices()
-            : [];
+        try {
+            voices = ('speechSynthesis' in window)
+                ? window.speechSynthesis.getVoices()
+                : [];
+        } catch (e) {
+            // A broken speechSynthesis.getVoices() must not throw; treat as
+            // "no voices" so the flow falls back to Google cleanly.
+            voices = [];
+        }
     }
 
     // Resolve the preferred (female) English voice from the current list.
@@ -142,30 +148,55 @@
     function speakLocal(text) {
         if (!('speechSynthesis' in window)) return false;
 
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'en-US';
-        u.rate = 0.8; // slightly slower than default — kid-friendly
+        // Guard against engines where speechSynthesis exists but the
+        // SpeechSynthesisUtterance constructor or .speak() is missing/
+        // broken (seen on some embedded/minimal browsers). Instead of
+        // letting an exception escape and break the page, fall back to
+        // Google below.
+        try {
+            if (typeof window.SpeechSynthesisUtterance !== 'function') return false;
 
-        const v = getPreferredVoice();
-        if (v) u.voice = v;
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'en-US';
+            u.rate = 0.8; // slightly slower than default — kid-friendly
 
-        u.onerror = () => { mode = 'google'; speakGoogle(text); };
+            const v = getPreferredVoice();
+            if (v) u.voice = v;
 
-        window.speechSynthesis.speak(u);
-        return true;
+            u.onerror = () => { mode = 'google'; speakGoogle(text); };
+
+            window.speechSynthesis.speak(u);
+            return true;
+        } catch (e) {
+            console.warn('[LearnTTS] local speak failed, falling back to Google:', e);
+            return false;
+        }
     }
 
     /* ------------------------------------------------------------------
      * Google fallback path: translate_tts MP3 stream in an <audio>.
      * ------------------------------------------------------------------ */
     function speakGoogle(text) {
-        const url = `${GOOGLE_TTS_BASE}?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${TTS_LANG}&client=tw-ob`;
-        if (!audioEl) audioEl = new Audio();
-        audioEl.src = url;
-        audioEl.play().catch((e) => {
-            console.warn('[LearnTTS] google audio failed to play:', e);
-        });
-        return true;
+        try {
+            const url = `${GOOGLE_TTS_BASE}?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${TTS_LANG}&client=tw-ob`;
+            if (!audioEl) {
+                // `Audio` may be unavailable in a minimal/no-media
+                // environment; bail out silently rather than throw.
+                if (typeof window.Audio !== 'function') return false;
+                audioEl = new Audio();
+            }
+            audioEl.src = url;
+            const p = audioEl.play();
+            if (p && typeof p.catch === 'function') {
+                p.catch((e) => {
+                    console.warn('[LearnTTS] google audio failed to play:', e);
+                });
+            }
+            return true;
+        } catch (e) {
+            console.warn('[LearnTTS] google fallback threw:', e);
+            return false;
+        }
     }
 
     /* ------------------------------------------------------------------
@@ -181,19 +212,25 @@
     // After that, mode is cached and speech is synchronous.
     function speak(text) {
         if (!text) return;
+        try {
+            refreshVoiceState();
 
-        refreshVoiceState();
+            if (mode === 'detecting') {
+                probe().then(() => {
+                    if (mode === 'local') speakLocal(text);
+                    else speakGoogle(text);
+                });
+                return;
+            }
 
-        if (mode === 'detecting') {
-            probe().then(() => {
-                if (mode === 'local') speakLocal(text);
-                else speakGoogle(text);
-            });
-            return;
+            if (mode === 'local') speakLocal(text);
+            else speakGoogle(text);
+        } catch (e) {
+            // Speech must NEVER take down the surrounding UI. On any
+            // unexpected error just attempt the Google fallback once.
+            console.warn('[LearnTTS] speak threw, attempting google fallback:', e);
+            try { speakGoogle(text); } catch (e2) { /* ignore */ }
         }
-
-        if (mode === 'local') speakLocal(text);
-        else speakGoogle(text);
     }
 
     window.LearnTTS = {
@@ -206,9 +243,15 @@
     // `voiceschanged` + grace timers catch the browsers that populate voices
     // late, so the preferred (female) voice is resolved before first use.
     if ('speechSynthesis' in window) {
-        refreshVoiceState();
-        window.speechSynthesis.addEventListener('voiceschanged', refreshVoiceState);
-        setTimeout(refreshVoiceState, 500);
-        setTimeout(refreshVoiceState, 1500);
+        try {
+            refreshVoiceState();
+            window.speechSynthesis.addEventListener('voiceschanged', refreshVoiceState);
+            setTimeout(refreshVoiceState, 500);
+            setTimeout(refreshVoiceState, 1500);
+        } catch (e) {
+            // Voice preloading is best-effort only; a broken speechSynthesis
+            // must not prevent the Google fallback from being usable later.
+            console.warn('[LearnTTS] voice preload failed:', e);
+        }
     }
 })();

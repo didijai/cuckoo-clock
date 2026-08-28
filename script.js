@@ -656,8 +656,18 @@ function hideLearnPanel() {
 function positionLearnPanel() {
     if (!learnPanelEnabled) return;
     if (busScheduleEnabled && window.innerWidth >= 640) {
-        const busRect = busPanel.getBoundingClientRect();
-        learnPanel.style.left = Math.max(busRect.right + 12, 16) + 'px';
+        // Compute the bus panel's FINAL resting geometry from its fixed
+        // CSS (left: 16px, width: min(420px, 36vw)) instead of reading
+        // getBoundingClientRect(). The rect is polluted by the entrance
+        // transition: the panel animates transform translateX(-16px) ->
+        // none over 0.35s, so a measurement taken right after enabling
+        // still reports the -16px shift, which made the learn panel sit
+        // ~16px too far LEFT and let the two panels overlap once the bus
+        // panel finished sliding into place.
+        const busLeft = 16;
+        const busWidth = Math.min(420, window.innerWidth * 0.36);
+        const busFinalRight = busLeft + busWidth;
+        learnPanel.style.left = Math.max(busFinalRight + 12, 16) + 'px';
     } else {
         learnPanel.style.left = ''; // fall back to the CSS default (16px)
     }

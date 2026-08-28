@@ -626,6 +626,7 @@ function collapseOtherPanel(keep) {
         learnPanelEnabled = false;
         learnPanelToggle.checked = false;
         hideLearnPanel();
+        syncLearnHighlight();
     } else {
         return; // nothing collapsed -> no repositioning needed
     }
@@ -718,6 +719,13 @@ function positionLearnPanel() {
     }
 }
 
+// Reflect the Learn panel's ON/OFF state on the header shortcut button
+// (bright when open, dim when closed) — same pattern as the bus-route
+// sidebar highlight.
+function syncLearnHighlight() {
+    learnToggleBtn.classList.toggle('active', learnPanelEnabled);
+}
+
 // Toggle used by BOTH the Settings checkbox and the header shortcut.
 function setLearnPanelEnabled(on) {
     learnPanelEnabled = on;
@@ -728,6 +736,7 @@ function setLearnPanelEnabled(on) {
     } else {
         hideLearnPanel();
     }
+    syncLearnHighlight();
     fitClockToScreen();
     saveSettings();
 }
@@ -1210,6 +1219,7 @@ if (learnPanelEnabled) {
     learnPanelToggle.checked = true;
     showLearnPanel();
 }
+syncLearnHighlight();
 
 // Enforce one-panel-at-a-time if the viewport is narrow but both were
 // saved as enabled (e.g. restored from a wider-screen session).

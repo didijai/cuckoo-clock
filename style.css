@@ -573,6 +573,32 @@ body {
     box-shadow: 0 0 12px rgba(217, 119, 6, 0.55);
 }
 
+/* ===== Learn shortcut button =====
+    Mirrors the bus-route shortcut so its color reflects ON/OFF state:
+    dim (off) by default, bright amber gradient + dark text when active. */
+.learn-toggle-btn {
+    border: 1px solid rgba(217, 119, 6, 0.35);
+    background: rgba(120, 53, 15, 0.5);
+    color: #fbbf24;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.learn-toggle-btn:hover {
+    background: rgba(180, 83, 9, 0.7);
+}
+
+.learn-toggle-btn:active {
+    transform: scale(0.92);
+}
+
+/* Highlighted while the Learn panel is open */
+.learn-toggle-btn.active {
+    background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+    color: #1c1917;
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 12px rgba(217, 119, 6, 0.55);
+}
+
 /* Tiny screens: keep the strip reachable but slimmer */
 @media (max-width: 479px) {
     .quick-route-btn {

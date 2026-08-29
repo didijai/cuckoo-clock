@@ -67,7 +67,7 @@
                 const randInt = (min, max) =>
                     Math.floor(Math.random() * (max - min + 1)) + min;
 
-                const caseId = randInt(1, 4);
+                const caseId = randInt(1, 3);
                 let a, b, text, answer, operator;
 
                 if (caseId === 1) {
@@ -75,12 +75,12 @@
                     a = randInt(1, 8);
                     b = randInt(1, 9 - a); // keeps a + b <= 9
                     operator = '+';
+                // } else if (caseId === 2) {
+                //     // Single-digit number plus a multiple of 10 (10..90).
+                //     a = randInt(1, 9);
+                //     b = randInt(1, 9) * 10;
+                //     operator = '+';
                 } else if (caseId === 2) {
-                    // Single-digit number plus a multiple of 10 (10..90).
-                    a = randInt(1, 9);
-                    b = randInt(1, 9) * 10;
-                    operator = '+';
-                } else if (caseId === 3) {
                     // Two 2-digit numbers, both multiples of 10, total <= 90.
                     a = randInt(1, 8) * 10;        // 10..80
                     b = randInt(1, (90 - a) / 10) * 10; // 10..(90-a)

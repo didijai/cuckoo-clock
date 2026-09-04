@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Static TTS Demo (No Browser TTS)</title>
+<style>
+  body { font-family: system-ui, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 16px; }
+  textarea { width: 100%; min-height: 100px; padding: 10px; font-size: 16px; }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  button { padding: 10px 14px; font-size: 16px; cursor: pointer; }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  #status { margin-top: 12px; min-height: 1.5em; color: #333; }
+  audio { width: 100%; margin-top: 12px; }
+  small { color: #666; }
+</style>
+</head>
+<body>
+<h2>Static TTS Demo</h2>
+<p><small>No local TTS used. Static file only. Google TTS endpoint.</small></p>
+
+<label for="text">Text to speak (English, max 200 chars):</label>
+<textarea id="text" maxlength="200">hello, what can I help you</textarea>
+
+<div class="row">
+  <button id="speakBtn">Speak 🔊</button>
+</div>
+
+<div id="status"></div>
+<audio id="player" controls></audio>
+<p><small>Endpoint: <code>translate.google.com/translate_tts</code>. If request fails, no sound is played.</small></p>
+
+<script>
+(function() {
+  const textEl = document.getElementById('text');
+  const btn = document.getElementById('speakBtn');
+  const statusEl = document.getElementById('status');
+  const player = document.getElementById('player');
+
+  function setStatus(msg) { statusEl.textContent = msg; }
+
+  async function speak() {
+    const text = textEl.value.trim();
+    if (!text) { setStatus('Type some text first.'); return; }
+    btn.disabled = true;
+    setStatus('Loading audio...');
+    try {
+      const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q='
+        + encodeURIComponent(text);
+      player.src = url;
+      await player.play();
+      setStatus('Playing via Google.');
+    } catch (e) {
+      console.error(e);
+      setStatus('Failed: ' + e.message + ' (no sound).');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', speak);
+})();
+</script>
+</body>
+</html>

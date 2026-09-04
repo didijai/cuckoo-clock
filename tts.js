@@ -80,6 +80,19 @@
         return femaleVoice;
     }
 
+    // True only when the browser can actually do local speech. The Google
+    // fallback exists precisely for browsers where this is false.
+    function hasLocalSupport() {
+        try {
+            return ('speechSynthesis' in window) &&
+                typeof window.SpeechSynthesisUtterance === 'function' &&
+                !!window.speechSynthesis &&
+                typeof window.speechSynthesis.speak === 'function';
+        } catch (e) {
+            return false;
+        }
+    }
+
     /* ------------------------------------------------------------------
      * One-time audible probe (keygame's probeTTS). Speak a near-inaudible
      * blip; if `onstart` fires the local engine truly works, else fall back
@@ -87,8 +100,9 @@
      * so the caller can await it before the first real utterance.
      * ------------------------------------------------------------------ */
     function probe() {
-        if (!('speechSynthesis' in window)) {
+        if (!hasLocalSupport()) {
             mode = 'google';
+            probed = true;
             return Promise.resolve('google');
         }
         if (probed) {
@@ -175,23 +189,115 @@
 
     /* ------------------------------------------------------------------
      * Google fallback path: translate_tts MP3 stream in an <audio>.
+     * Proven pattern from test.html:
+     *   <meta name="referrer" content="no-referrer" />
+     *   <audio referrerpolicy="no-referrer" ...>
+     *   url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=' + encodeURIComponent(text)
+     * Without the no-referrer policy the request carries a Referer and
+     * Chrome blocks the opaque audio with BLOCKED_BY_ORB / 403.
      * ------------------------------------------------------------------ */
-    function speakGoogle(text) {
-        try {
-            const url = `${GOOGLE_TTS_BASE}?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${TTS_LANG}&client=tw-ob`;
-            if (!audioEl) {
-                // `Audio` may be unavailable in a minimal/no-media
-                // environment; bail out silently rather than throw.
-                if (typeof window.Audio !== 'function') return false;
-                audioEl = new Audio();
+    const GOOGLE_MAX_CHUNK = 200; // Google truncates past ~200 chars
+    let googleQueue = [];         // pending chunk URLs for current utterance
+    let googleToken = 0;          // cancels stale queues on rapid re-speak
+
+    function buildGoogleUrl(text) {
+        // Same param order as test.html (ie, tl, client, q).
+        return `${GOOGLE_TTS_BASE}?ie=UTF-8&tl=${TTS_LANG}&client=tw-ob&q=${encodeURIComponent(text)}`;
+    }
+
+    // Split long text on word/sentence boundaries so every chunk is <=200 chars.
+    function chunkForGoogle(text) {
+        const s = String(text).trim();
+        if (s.length <= GOOGLE_MAX_CHUNK) return [s];
+        const chunks = [];
+        // Prefer sentence splits, then word splits.
+        const sentences = s.split(/(?<=[.!?。！？])\s+/);
+        let buf = '';
+        const flush = () => { if (buf.trim()) chunks.push(buf.trim()); buf = ''; };
+        const pushWords = (line) => {
+            const words = line.split(/\s+/);
+            for (const w of words) {
+                if (((buf ? buf.length + 1 : 0) + w.length) > GOOGLE_MAX_CHUNK) flush();
+                // Single over-long word: hard-split it.
+                if (w.length > GOOGLE_MAX_CHUNK) {
+                    flush();
+                    for (let i = 0; i < w.length; i += GOOGLE_MAX_CHUNK) {
+                        chunks.push(w.slice(i, i + GOOGLE_MAX_CHUNK));
+                    }
+                } else {
+                    buf = buf ? buf + ' ' + w : w;
+                }
             }
-            audioEl.src = url;
-            const p = audioEl.play();
+        };
+        for (const sent of sentences) {
+            if ((buf.length + 1 + sent.length) > GOOGLE_MAX_CHUNK && buf) flush();
+            if (sent.length > GOOGLE_MAX_CHUNK) pushWords(sent);
+            else buf = buf ? buf + ' ' + sent : sent;
+        }
+        flush();
+        return chunks.length ? chunks : [s.slice(0, GOOGLE_MAX_CHUNK)];
+    }
+
+    function ensureAudioEl() {
+        if (audioEl) return audioEl;
+        // `Audio` may be unavailable in a minimal/no-media
+        // environment; bail out silently rather than throw.
+        if (typeof window.Audio !== 'function') return null;
+        try {
+            audioEl = new Audio();
+            // Critical: mirror test.html's referrerpolicy="no-referrer".
+            try {
+                audioEl.referrerPolicy = 'no-referrer';
+                audioEl.setAttribute('referrerpolicy', 'no-referrer');
+            } catch (e) { /* older browsers ignore it */ }
+            try { audioEl.preload = 'auto'; } catch (e) { }
+            audioEl.addEventListener('ended', playNextGoogleChunk);
+            audioEl.addEventListener('error', () => {
+                console.warn('[LearnTTS] google audio chunk error, skipping.');
+                playNextGoogleChunk();
+            });
+        } catch (e) {
+            console.warn('[LearnTTS] cannot create Audio element:', e);
+            return null;
+        }
+        return audioEl;
+    }
+
+    function playNextGoogleChunk() {
+        const el = audioEl;
+        if (!el) return;
+        const next = googleQueue.shift();
+        if (!next) return;
+        try {
+            // Setting src + load() + play() synchronously keeps the
+            // user-gesture allowance whenever possible.
+            el.src = next;
+            try { el.load(); } catch (e) { /* load() optional */ }
+            const p = el.play();
             if (p && typeof p.catch === 'function') {
                 p.catch((e) => {
                     console.warn('[LearnTTS] google audio failed to play:', e);
                 });
             }
+        } catch (e) {
+            console.warn('[LearnTTS] google chunk play threw:', e);
+            // Try the following chunk so one bad chunk can't wedge the queue.
+            playNextGoogleChunk();
+        }
+    }
+
+    function speakGoogle(text) {
+        try {
+            const s = String(text == null ? '' : text).trim();
+            if (!s) return false;
+            const el = ensureAudioEl();
+            if (!el) return false;
+            // A new speak() replaces any in-flight utterance (same as before:
+            // one shared <audio> so rapid clicks don't overlap).
+            googleToken += 1;
+            try { el.pause(); } catch (e) { }
+            googleQueue = chunkForGoogle(s).map(buildGoogleUrl);
+            playNextGoogleChunk();
             return true;
         } catch (e) {
             console.warn('[LearnTTS] google fallback threw:', e);
@@ -210,9 +316,19 @@
     // Speak `text`. On the very first call the engine is unresolved, so we
     // await the probe (a one-time blip) before the first real utterance.
     // After that, mode is cached and speech is synchronous.
+    // Exception: browsers with NO local engine go straight to Google
+    // synchronously so audio.play() stays inside the user gesture (else
+    // autoplay policy blocks the async .then() playback).
     function speak(text) {
         if (!text) return;
         try {
+            if (!hasLocalSupport()) {
+                mode = 'google';
+                probed = true;
+                speakGoogle(text);
+                return;
+            }
+
             refreshVoiceState();
 
             if (mode === 'detecting') {

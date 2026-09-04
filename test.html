@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="referrer" content="no-referrer" />
 <title>Static TTS Demo (No Browser TTS)</title>
 <style>
   body { font-family: system-ui, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 16px; }
@@ -27,7 +28,7 @@
 </div>
 
 <div id="status"></div>
-<audio id="player" controls></audio>
+<audio id="player" controls referrerpolicy="no-referrer"></audio>
 <p><small>Endpoint: <code>translate.google.com/translate_tts</code>. If request fails, no sound is played.</small></p>
 
 <script>

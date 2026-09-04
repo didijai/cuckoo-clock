@@ -43,10 +43,13 @@
     // TTS gating. The parent clock page controls these via postMessage:
     //   - ttsEnabled: the "Read-Aloud (TTS)" setting (default ON).
     //   - soundActive: global sound truly running (audio.enabled && running).
-    // Speech only happens when both are true. Defaults are permissive so the
+    //   - ttsEngine: 'auto' | 'browser' | 'google' (default 'auto').
+    // Speech only happens when ttsEnabled && soundActive are true, using
+    // the selected engine. Defaults are permissive so the
     // module still speaks if opened without a parent (standalone / test).
     let ttsEnabled = true;
     let soundActive = true;
+    let ttsEngine = 'auto';
 
     // Cache TTL: questions are cached for 1 hour. Reloading the page within
     // that window returns the SAME question; after expiry a new one is made.
@@ -377,6 +380,17 @@
         if (!data || data.type !== 'learn-tts-state') return;
         if (typeof data.ttsEnabled === 'boolean') ttsEnabled = data.ttsEnabled;
         if (typeof data.soundActive === 'boolean') soundActive = data.soundActive;
+        if (typeof data.ttsEngine === 'string') {
+            const next = data.ttsEngine.toLowerCase();
+            if (next === 'auto' || next === 'browser' || next === 'google') {
+                ttsEngine = next;
+                try {
+                    if (window.LearnTTS && typeof window.LearnTTS.setEngine === 'function') {
+                        window.LearnTTS.setEngine(next);
+                    }
+                } catch (err) { /* engine switch is best-effort */ }
+            }
+        }
     });
 
     // Ask the parent for the current state once we're live (in case the

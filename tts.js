@@ -13,12 +13,17 @@
      - The engine choice is cached; real speech never re-probes or re-picks a
        voice on every click.
 
-   API:
-       window.LearnTTS.speak(text)   -> speaks `text` with the best engine
-       window.LearnTTS.mode         -> 'detecting' | 'local' | 'google'
-       window.LearnTTS.init()       -> run the one-time local-TTS probe now
-                                        (call inside the FIRST user gesture so
-                                        the browser permits speech).
+    API:
+        window.LearnTTS.speak(text)   -> speaks `text` with the best engine
+        window.LearnTTS.mode         -> 'detecting' | 'local' | 'google'
+        window.LearnTTS.engine       -> 'auto' | 'browser' | 'google'
+        window.LearnTTS.setEngine(e) -> select 'auto' | 'browser' | 'google':
+                                        auto = browser, fallback to Google;
+                                        browser = browser only, silent on fail;
+                                        google = Google only, silent on fail
+        window.LearnTTS.init()       -> run the one-time local-TTS probe now
+                                         (call inside the FIRST user gesture so
+                                         the browser permits speech).
    ========================================================================== */
 
 (function () {
@@ -34,7 +39,8 @@
     // Engine + voice state. Key point (from keygame): the preferred female
     // voice is resolved ONCE and cached, so the FIRST utterance already uses
     // it and every later one uses the identical voice.
-    let mode = 'detecting';         // 'detecting' -> 'local' | 'google'
+    let mode = 'detecting';         // detection result: 'detecting' -> 'local' | 'google'
+    let preferredEngine = 'auto';   // user selection: 'auto' | 'browser' | 'google'
     let probed = false;             // has the one-time probe already run?
     let probePromise = null;        // in-flight probe promise, if any
     let voices = [];                // latest voice list from speechSynthesis
@@ -158,8 +164,11 @@
 
     /* ------------------------------------------------------------------
      * Local TTS path: SpeechSynthesis, using the cached preferred voice.
+     * When `allowFallback` is false (Browser-only engine), a local error
+     * produces NO sound instead of falling back to Google.
      * ------------------------------------------------------------------ */
-    function speakLocal(text) {
+    function speakLocal(text, allowFallback) {
+        if (allowFallback === undefined) allowFallback = (preferredEngine === 'auto');
         if (!('speechSynthesis' in window)) return false;
 
         // Guard against engines where speechSynthesis exists but the
@@ -177,7 +186,13 @@
             const v = getPreferredVoice();
             if (v) u.voice = v;
 
-            u.onerror = () => { mode = 'google'; speakGoogle(text); };
+            u.onerror = () => {
+                if (allowFallback) {
+                    mode = 'google';
+                    speakGoogle(text);
+                }
+                // Browser-only: no fallback, no sound.
+            };
 
             window.speechSynthesis.speak(u);
             return true;
@@ -308,23 +323,85 @@
     /* ------------------------------------------------------------------
      * Public entry points.
      * ------------------------------------------------------------------ */
+    // Stop any in-flight speech (both engines) so switching engines or
+    // issuing a new utterance never overlaps the previous one.
+    function stopAll() {
+        try {
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        } catch (e) { }
+        try {
+            googleToken += 1;
+            googleQueue = [];
+            if (audioEl) audioEl.pause();
+        } catch (e) { }
+    }
+
+    // Set the user-selected engine:
+    //   'auto'    -> browser TTS, fall back to Google on failure (default)
+    //   'browser' -> browser TTS only, no sound on failure
+    //   'google'  -> Google TTS only, no sound on failure
+    function setEngine(engine) {
+        const next = String(engine || 'auto').toLowerCase();
+        if (next !== 'auto' && next !== 'browser' && next !== 'google') return preferredEngine;
+        if (next === preferredEngine) return preferredEngine;
+        preferredEngine = next;
+        stopAll();
+        if (next === 'google') {
+            mode = 'google';
+            probed = true;
+        } else if (next === 'browser') {
+            // Re-probe local on next speak/init so a previous Google
+            // fallback doesn't stick when the user forces Browser-only.
+            if (mode === 'google' && hasLocalSupport()) {
+                mode = 'detecting';
+                probed = false;
+                probePromise = null;
+            }
+        } else {
+            // Back to Auto: re-run detection if we had locked to Google
+            // without ever proving local is broken (e.g. after Google-only).
+            if (probed && mode === 'google' && hasLocalSupport()) {
+                refreshVoiceState();
+                if (voices.length > 0) {
+                    mode = 'detecting';
+                    probed = false;
+                    probePromise = null;
+                }
+            }
+        }
+        return preferredEngine;
+    }
+
     // Run the probe now (inside a user gesture). Idempotent.
+    // Google-only skips the local probe entirely.
     function init() {
+        if (preferredEngine === 'google') return Promise.resolve('google');
         return probe();
     }
 
-    // Speak `text`. On the very first call the engine is unresolved, so we
-    // await the probe (a one-time blip) before the first real utterance.
-    // After that, mode is cached and speech is synchronous.
+    // Speak `text` honoring the selected engine. On the very first call
+    // the engine is unresolved, so we await the probe (a one-time blip)
+    // before the first real utterance. After that, mode is cached and
+    // speech is synchronous.
     // Exception: browsers with NO local engine go straight to Google
-    // synchronously so audio.play() stays inside the user gesture (else
-    // autoplay policy blocks the async .then() playback).
+    // synchronously (Auto) so audio.play() stays inside the user gesture
+    // (else autoplay policy blocks the async .then() playback). In
+    // Browser-only mode the same browsers produce no sound by design.
     function speak(text) {
         if (!text) return;
         try {
+            // Google-only: never touch speechSynthesis.
+            if (preferredEngine === 'google') {
+                speakGoogle(text);
+                return;
+            }
+
+            const browserOnly = (preferredEngine === 'browser');
+
             if (!hasLocalSupport()) {
                 mode = 'google';
                 probed = true;
+                if (browserOnly) return; // Browser-only: no sound, no fallback
                 speakGoogle(text);
                 return;
             }
@@ -333,26 +410,39 @@
 
             if (mode === 'detecting') {
                 probe().then(() => {
-                    if (mode === 'local') speakLocal(text);
-                    else speakGoogle(text);
+                    if (mode === 'local') {
+                        const ok = speakLocal(text, !browserOnly);
+                        if (!ok && !browserOnly) speakGoogle(text);
+                    }
+                    else if (!browserOnly) speakGoogle(text);
+                    // Browser-only + probe failed -> no sound by design.
                 });
                 return;
             }
 
-            if (mode === 'local') speakLocal(text);
-            else speakGoogle(text);
+            if (mode === 'local') {
+                const ok = speakLocal(text, !browserOnly);
+                if (!ok && !browserOnly) speakGoogle(text);
+            }
+            else if (!browserOnly) speakGoogle(text);
+            // Browser-only + mode google -> no sound by design.
         } catch (e) {
-            // Speech must NEVER take down the surrounding UI. On any
-            // unexpected error just attempt the Google fallback once.
-            console.warn('[LearnTTS] speak threw, attempting google fallback:', e);
-            try { speakGoogle(text); } catch (e2) { /* ignore */ }
+            // Speech must NEVER take down the surrounding UI.
+            console.warn('[LearnTTS] speak threw:', e);
+            if (preferredEngine === 'auto') {
+                try { speakGoogle(text); } catch (e2) { /* ignore */ }
+            }
+            // Browser/Google-only: no fallback, no sound.
         }
     }
 
     window.LearnTTS = {
         speak,
         init,
-        get mode() { return mode; }
+        setEngine,
+        stop: stopAll,
+        get mode() { return mode; },
+        get engine() { return preferredEngine; }
     };
 
     // Preload voices asynchronously (keygame's constructor-time preload).

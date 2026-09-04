@@ -869,17 +869,33 @@
                     </label>
                 </div>
 
-                <div class="flex items-center justify-between text-sm">
+                <div class="space-y-2" id="ttsModeRow">
                     <div class="flex flex-col">
-                        <span class="text-slate-300 font-medium">Read-Aloud (TTS)</span>
-                        <span class="text-[10px] text-slate-500">Speak Learn questions & answers</span>
+                        <span class="text-slate-300 font-medium text-sm">Read-Aloud (TTS)</span>
+                        <span class="text-[10px] text-slate-500" id="ttsModeDesc">Speak Learn questions & answers</span>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="ttsToggle" class="sr-only peer" checked>
-                        <div
-                            class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
-                        </div>
-                    </label>
+                    <div class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Read-Aloud (TTS) mode">
+                        <button id="ttsModeOffBtn" type="button" role="radio"
+                            class="flex flex-col items-start gap-0.5 px-3 py-2 rounded-xl border text-left transition">
+                            <span class="text-xs font-bold">Off</span>
+                            <span class="text-[10px] opacity-70">No speech</span>
+                        </button>
+                        <button id="ttsModeAutoBtn" type="button" role="radio"
+                            class="flex flex-col items-start gap-0.5 px-3 py-2 rounded-xl border text-left transition">
+                            <span class="text-xs font-bold">Auto</span>
+                            <span class="text-[10px] opacity-70">Browser → Google fallback</span>
+                        </button>
+                        <button id="ttsModeBrowserBtn" type="button" role="radio"
+                            class="flex flex-col items-start gap-0.5 px-3 py-2 rounded-xl border text-left transition">
+                            <span class="text-xs font-bold">Browser</span>
+                            <span class="text-[10px] opacity-70">No fallback, silent on fail</span>
+                        </button>
+                        <button id="ttsModeGoogleBtn" type="button" role="radio"
+                            class="flex flex-col items-start gap-0.5 px-3 py-2 rounded-xl border text-left transition">
+                            <span class="text-xs font-bold">Google</span>
+                            <span class="text-[10px] opacity-70">No fallback, silent on fail</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex items-center justify-between text-sm">

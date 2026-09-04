@@ -160,7 +160,13 @@ let lastSecond = -1;
 let lastTickSide = false;
 let busScheduleEnabled = false; // Bus schedule panel ON/OFF (Settings toggle)
 let learnPanelEnabled = false; // Learning panel (Math -> Addition) ON/OFF
-let ttsEnabled = true;         // Read-aloud (TTS) for the Learn panel, default ON
+// Unified Read-Aloud (TTS) mode: 'off' | 'auto' | 'browser' | 'google'.
+// 'off' == muted; 'auto' == browser with Google fallback; 'browser'/'google'
+// are exclusive with no fallback (silent on failure). Default 'auto'.
+let ttsMode = 'auto';
+// Derived mirrors kept for the Learn-iframe bridge + legacy settings:
+let ttsEnabled = true;         // ttsMode !== 'off'
+let ttsEngine = 'auto';        // effective engine sent to the iframe
 
 // Below this width the bus + learn panels would crowd out the clock,
 // so only one left-docked panel is allowed at a time (opening one
@@ -257,7 +263,9 @@ function saveSettings() {
             autoRewindEnabled,
             busScheduleEnabled,
             learnPanelEnabled,
+            ttsMode,
             ttsEnabled,
+            ttsEngine,
             speedMultiplier,
             currentBusUrl,
             activeRouteUrl,
@@ -302,7 +310,14 @@ const learnPanel = document.getElementById('learnPanel');
 const learnFrame = document.getElementById('learnFrame');
 const learnPanelToggle = document.getElementById('learnPanelToggle');
 const learnToggleBtn = document.getElementById('learnToggleBtn');
-const ttsToggle = document.getElementById('ttsToggle');
+// Unified TTS mode buttons (2x2 grid). Legacy `ttsToggle` / `ttsEngine*Btn`
+// IDs no longer exist in the markup; lookups are guarded so old cached
+// pages don't throw.
+const ttsModeOffBtn = document.getElementById('ttsModeOffBtn');
+const ttsModeAutoBtn = document.getElementById('ttsModeAutoBtn');
+const ttsModeBrowserBtn = document.getElementById('ttsModeBrowserBtn');
+const ttsModeGoogleBtn = document.getElementById('ttsModeGoogleBtn');
+const ttsModeDesc = document.getElementById('ttsModeDesc');
 
 // Quick Route Sidebar + Settings Manager Elements
 const quickRouteBtns = document.getElementById('quickRouteBtns');
@@ -662,16 +677,20 @@ function hideLearnPanel() {
 
 // Push the current TTS settings to the Learn iframe (cross-iframe bridge).
 // The Learn speech is allowed only when BOTH:
-//   - the "Read-Aloud (TTS)" setting is ON, and
+//   - the unified TTS mode is not 'off' (ttsEnabled mirror), and
 //   - the global sound is truly active (audio.enabled && audio.isRunning()).
 // Otherwise speechSynthesis / audio clips are suppressed in the iframe.
+// `ttsEngine` selects the speech backend: 'auto' (browser, fallback to
+// Google), 'browser' (no fallback, silent on failure), 'google' (no
+// fallback, silent on failure).
 function notifyLearnTTSState() {
     if (!learnFrame || !learnFrame.contentWindow) return;
     try {
         learnFrame.contentWindow.postMessage({
             type: 'learn-tts-state',
             ttsEnabled: !!ttsEnabled,
-            soundActive: !!(audio.enabled && audio.isRunning())
+            soundActive: !!(audio.enabled && audio.isRunning()),
+            ttsEngine: ttsEngine
         }, '*');
     } catch (err) {
         /* iframe not ready yet — state is re-sent on its `load` event */
@@ -690,12 +709,52 @@ window.addEventListener('message', (e) => {
     }
 });
 
-// Settings TTS toggle: update state, notify the open iframe, persist.
-ttsToggle.addEventListener('change', (e) => {
-    ttsEnabled = e.target.checked;
+// Unified Read-Aloud (TTS) selector: Off / Auto / Browser / Google in a
+// compact 2x2 grid. Off mutes speech (legacy ttsEnabled=false); the other
+// three pick the engine with Auto falling back to Google.
+const TTS_MODE_DESCS = {
+    off: 'Read-aloud is off — no speech',
+    auto: 'Speak Learn questions & answers · Browser → Google fallback',
+    browser: 'Speak via browser voices · silent on failure',
+    google: 'Speak via Google · silent on failure'
+};
+
+function syncTTSStateFromMode() {
+    ttsEnabled = (ttsMode !== 'off');
+    ttsEngine = (ttsMode === 'off' ? 'auto' : ttsMode);
+}
+
+function syncTTSModeButtons() {
+    const active = 'flex flex-col items-start gap-0.5 px-3 py-2 rounded-xl border text-left transition bg-amber-600 border-amber-500 text-slate-950 shadow-md';
+    const idle = 'flex flex-col items-start gap-0.5 px-3 py-2 rounded-xl border text-left transition bg-slate-800/60 border-slate-700 text-slate-300 hover:border-amber-600/60 hover:text-white';
+    const map = [
+        [ttsModeOffBtn, 'off'],
+        [ttsModeAutoBtn, 'auto'],
+        [ttsModeBrowserBtn, 'browser'],
+        [ttsModeGoogleBtn, 'google']
+    ];
+    map.forEach(([btn, mode]) => {
+        if (!btn) return;
+        btn.className = (ttsMode === mode ? active : idle);
+        btn.setAttribute('aria-checked', ttsMode === mode ? 'true' : 'false');
+    });
+    if (ttsModeDesc) ttsModeDesc.textContent = TTS_MODE_DESCS[ttsMode] || TTS_MODE_DESCS.auto;
+}
+
+function setTTSMode(mode) {
+    const next = String(mode || 'auto').toLowerCase();
+    if (next !== 'off' && next !== 'auto' && next !== 'browser' && next !== 'google') return;
+    ttsMode = next;
+    syncTTSStateFromMode();
+    syncTTSModeButtons();
     notifyLearnTTSState();
     saveSettings();
-});
+}
+
+if (ttsModeOffBtn) ttsModeOffBtn.addEventListener('click', () => setTTSMode('off'));
+if (ttsModeAutoBtn) ttsModeAutoBtn.addEventListener('click', () => setTTSMode('auto'));
+if (ttsModeBrowserBtn) ttsModeBrowserBtn.addEventListener('click', () => setTTSMode('browser'));
+if (ttsModeGoogleBtn) ttsModeGoogleBtn.addEventListener('click', () => setTTSMode('google'));
 
 // Keep the panel shifted to the right of the bus schedule panel when
 // both are open on wide screens, so they never overlap.
@@ -1152,10 +1211,22 @@ if (savedSettings) {
     }
     if (typeof savedSettings.busScheduleEnabled === 'boolean') busScheduleEnabled = savedSettings.busScheduleEnabled;
     if (typeof savedSettings.learnPanelEnabled === 'boolean') learnPanelEnabled = savedSettings.learnPanelEnabled;
-    if (typeof savedSettings.ttsEnabled === 'boolean') {
-        ttsEnabled = savedSettings.ttsEnabled;
-        ttsToggle.checked = savedSettings.ttsEnabled;
+    // New unified key wins; fall back to the legacy pair
+    // (ttsEnabled boolean + ttsEngine string) from earlier versions.
+    if (savedSettings.ttsMode === 'off' || savedSettings.ttsMode === 'auto' || savedSettings.ttsMode === 'browser' || savedSettings.ttsMode === 'google') {
+        ttsMode = savedSettings.ttsMode;
+    } else {
+        let legacyEngine = 'auto';
+        if (savedSettings.ttsEngine === 'auto' || savedSettings.ttsEngine === 'browser' || savedSettings.ttsEngine === 'google') {
+            legacyEngine = savedSettings.ttsEngine;
+        }
+        if (typeof savedSettings.ttsEnabled === 'boolean') {
+            ttsMode = savedSettings.ttsEnabled ? legacyEngine : 'off';
+        } else {
+            ttsMode = legacyEngine;
+        }
     }
+    syncTTSStateFromMode();
     if (typeof savedSettings.speedMultiplier === 'number') speedMultiplier = Math.max(1, Math.min(60, savedSettings.speedMultiplier));
     if (typeof savedSettings.currentBusUrl === 'string' && /^https?:\/\//i.test(savedSettings.currentBusUrl)) currentBusUrl = savedSettings.currentBusUrl;
     if (savedSettings.activeRouteUrl === null || (typeof savedSettings.activeRouteUrl === 'string' && /^https?:\/\//i.test(savedSettings.activeRouteUrl))) activeRouteUrl = savedSettings.activeRouteUrl;
@@ -1220,6 +1291,8 @@ if (learnPanelEnabled) {
     showLearnPanel();
 }
 syncLearnHighlight();
+syncTTSStateFromMode();
+syncTTSModeButtons();
 
 // Enforce one-panel-at-a-time if the viewport is narrow but both were
 // saved as enabled (e.g. restored from a wider-screen session).

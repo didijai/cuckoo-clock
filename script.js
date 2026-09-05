@@ -573,6 +573,9 @@ function showBusPanel() {
 function hideBusPanel() {
     busPanel.classList.remove('visible');
     busPanel.setAttribute('aria-hidden', 'true');
+    // Re-flow the surviving left-docked panels (e.g. media slides back
+    // left when learn/bus closes). Harmless when nothing else is open.
+    positionSidePanels();
 }
 
 // Highlight the sidebar button whose route is currently loaded
@@ -702,6 +705,9 @@ function showLearnPanel() {
 function hideLearnPanel() {
     learnPanel.classList.remove('visible');
     learnPanel.setAttribute('aria-hidden', 'true');
+    // Re-flow the surviving left-docked panels (e.g. media slides back
+    // left when learn closes). Harmless when nothing else is open.
+    positionSidePanels();
 }
 
 // Push the current TTS settings to the Learn iframe (cross-iframe bridge).
@@ -904,6 +910,9 @@ function showMediaPanel() {
 function hideMediaPanel() {
     mediaPanel.classList.remove('visible');
     mediaPanel.setAttribute('aria-hidden', 'true');
+    // Re-flow the surviving left-docked panels (e.g. learn slides back
+    // left when media closes). Harmless when nothing else is open.
+    positionSidePanels();
 }
 
 // Push the persisted rotation interval to the Media iframe.

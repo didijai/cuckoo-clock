@@ -270,8 +270,35 @@
         btn.textContent = refreshing ? '↻ Refreshing…' : '↻ Refresh';
     }
 
+    // LRU cap for FULL blobs: neighbour preload + viewing accumulate one
+    // blob URL per file, which adds up with hundreds of large videos. Keep
+    // the most recent FULL_CACHE_MAX; always spare the current item and its
+    // neighbours so playback never re-downloads. Evicted tiles fall back to
+    // their thumbnailLink <img> automatically (renderBrowse/paintThumb read
+    // objectUrls live).
+    const FULL_CACHE_MAX = 20;
+    function touchFullCache(id) {
+        if (objectUrls[id]) {
+            const url = objectUrls[id];
+            delete objectUrls[id]; // re-insert = most-recently-used
+            objectUrls[id] = url;
+        }
+        const keep = {};
+        if (files.length) {
+            keep[files[currentIndex] && files[currentIndex].id] = true;
+            keep[files[(currentIndex + 1) % files.length] && files[(currentIndex + 1) % files.length].id] = true;
+            keep[files[(currentIndex - 1 + files.length) % files.length] && files[(currentIndex - 1 + files.length) % files.length].id] = true;
+        }
+        const ids = Object.keys(objectUrls);
+        for (let k = 0; k < ids.length && Object.keys(objectUrls).length > FULL_CACHE_MAX; k++) {
+            if (keep[ids[k]]) continue;
+            try { URL.revokeObjectURL(objectUrls[ids[k]]); } catch (e) {}
+            delete objectUrls[ids[k]];
+        }
+    }
+
     async function blobUrlFor(file, accessToken) {
-        if (objectUrls[file.id]) return objectUrls[file.id];
+        if (objectUrls[file.id]) { touchFullCache(file.id); return objectUrls[file.id]; }
         const token = accessToken || getCachedToken();
         if (!token) throw new Error('no token');
         const res = await fetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media', {
@@ -286,6 +313,7 @@
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         objectUrls[file.id] = url;
+        touchFullCache(file.id);
         return url;
     }
 
@@ -745,11 +773,14 @@
         });
     }
 
-    /* ---------------- rotation interval (parent-owned) ------------------- */
+    /* ---------------- rotation interval (parent-owned) -------------------
+       Hard cap matches the parent (script.js slider, 5–120s) so the two
+       sides can never disagree. */
+    const ROTATE_MIN = 5, ROTATE_MAX = 120;
     function applyRotateSec(sec, persistLocal) {
         const n = Math.round(Number(sec));
         if (!isFinite(n)) return;
-        rotateSec = Math.min(300, Math.max(5, n));
+        rotateSec = Math.min(ROTATE_MAX, Math.max(ROTATE_MIN, n));
         if (persistLocal) {
             try { localStorage.setItem(LOCAL_INTERVAL_KEY, String(rotateSec)); } catch (e) {}
         }
@@ -765,7 +796,7 @@
         try {
             const raw = localStorage.getItem(LOCAL_INTERVAL_KEY);
             const n = Math.round(Number(raw));
-            if (isFinite(n) && n >= 5 && n <= 300) return n;
+            if (isFinite(n) && n >= ROTATE_MIN && n <= ROTATE_MAX) return n;
         } catch (e) {}
         return DEFAULT_ROTATE_SEC;
     }

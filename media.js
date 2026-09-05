@@ -22,8 +22,14 @@
    - Auto-rotate: images advance every `rotateSec` (default 30s, set by the
      parent Settings and persisted there). Audio/video play through, then
      wait `rotateSec` after the `ended` event before advancing.
-   - Two views: Viewer (single-item slideshow) and Browse (thumbnail grid).
-   ========================================================================== */
+    - Two views: Viewer (single-item slideshow) and Browse (thumbnail grid).
+    - Popup mode: opened standalone as media.html?popup=1 (panel header
+      "Open in New Tab" / header pop-out button, same pattern as the bus
+      schedule panel). body.popup widens the layout (fluid auto-fill grid,
+      taller stage) and the header owns a Sign In/Out button, since no
+      Settings parent exists to drive auth via postMessage. Token cache in
+      localStorage is shared, so signing in once signs in both modes.
+    ========================================================================== */
 (function () {
     'use strict';
 
@@ -39,6 +45,24 @@
     const LOCAL_INTERVAL_KEY = 'clock.mediaRotateSec';
     const LOCAL_VIEW_KEY = 'clock.mediaView';
     const DEFAULT_ROTATE_SEC = 30;
+
+    // Popup (standalone full-tab) mode follows the FRAME context, not the
+    // query string: framed inside the docked panel it is always embedded
+    // (single outer title), top-level it is always a popup (owns its own
+    // header + Sign In). ?popup=1 on the link just documents the intent.
+    const EMBEDDED = (function () {
+        try { return !!(window.parent && window.parent !== window); }
+        catch (e) { return false; }
+    })();
+    const POPUP = !EMBEDDED;
+    if (POPUP && document.body) document.body.classList.add('popup');
+
+    // Auth hint wording depends on who owns Sign In: the Settings parent
+    // when docked, the header button when in popup mode.
+    function signinHint() {
+        return POPUP ? 'tap Sign In above to load media'
+                     : 'use Settings → Media to sign in';
+    }
 
     let tokenClient = null;
     let files = [];            // [{id,name,mimeType,kind,thumbnailLink}]
@@ -87,7 +111,10 @@
         const dot = $('authDot'), status = $('authStatus');
         if (dot) dot.classList.toggle('signed', !!signedIn);
         if (status) status.textContent = statusText || (signedIn ? 'Signed in' : 'Not signed in');
-        // Mirror the state to the parent Settings panel.
+        // Popup tab owns its auth: keep the header button label in sync.
+        const authBtn = $('authBtn');
+        if (authBtn) authBtn.textContent = signedIn ? 'Sign Out' : 'Sign In';
+        // Mirror the state to the parent Settings panel (no-op standalone).
         try {
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({
@@ -100,9 +127,11 @@
         } catch (e) {}
     }
 
-    // Copy shown when signed out — points at Settings (auth now lives there).
+    // Copy shown when signed out — points at Settings when docked,
+    // at the header button when in popup mode.
     function signedOutHint() {
-        return 'Signed out. Use Settings → Media → Sign In to reload.';
+        return POPUP ? 'Signed out. Tap Sign In above to reload.'
+                     : 'Signed out. Use Settings → Media → Sign In to reload.';
     }
 
     function signOut() {
@@ -118,7 +147,7 @@
         currentIndex = 0;
         revokeAllObjectUrls();
         renderEmpty(signedOutHint());
-        setAuthUI(false, 'Not signed in — use Settings → Media to sign in');
+        setAuthUI(false, 'Not signed in — ' + signinHint());
         syncControls();
         updateFooter();
         renderBrowse();
@@ -154,7 +183,7 @@
                     // Had a token but expired -> silent refresh when possible.
                     tokenClient.requestAccessToken({ prompt: '' });
                 } else {
-                    setAuthUI(false, 'Not signed in — use Settings → Media to sign in');
+                    setAuthUI(false, 'Not signed in — ' + signinHint());
                 }
             } catch (e) { setAuthUI(false); }
         }
@@ -521,9 +550,12 @@
         $('playBtn').textContent = playing ? '⏸ Pause' : '▶ Play';
     }
 
+    // Single status bar (see media.html .media-footer): auth + item count
+    // live on the left (setAuthUI), slideshow state on the right here.
+    // NOTE: no static "Every Xs" note — it duplicated the live countdown
+    // ("Next in Xs"), so the interval only appears inside live messages.
     function updateFooter(overrideNote) {
-        const dot = $('rotateDot'), note = $('rotateNote'), iv = $('intervalNote');
-        if (iv) iv.textContent = 'Every ' + rotateSec + 's' + (waitingAfterMedia ? ' after playback' : '');
+        const dot = $('rotateDot'), note = $('rotateNote');
         if (!files.length) {
             if (dot) dot.classList.add('paused');
             if (note) note.textContent = 'Sign in to load media';
@@ -722,7 +754,8 @@
         if (!files.length) {
             const s = document.createElement('div');
             s.className = 'browse-empty';
-            s.innerHTML = 'Nothing here yet.<br>Sign in via Settings → Media.';
+            s.innerHTML = POPUP ? 'Nothing here yet.<br>Tap Sign In above.'
+                                : 'Nothing here yet.<br>Sign in via Settings → Media.';
             grid.appendChild(s);
             return;
         }
@@ -840,6 +873,30 @@
             if ($('viewerTab')) $('viewerTab').addEventListener('click', function () { setView('viewer'); });
             if ($('browseTab')) $('browseTab').addEventListener('click', function () { setView('browse'); });
             if ($('refreshBtn')) $('refreshBtn').addEventListener('click', refreshLibrary);
+            // Header: pop-out opens the standalone full-tab (bus-panel pattern).
+            if ($('popoutBtn')) $('popoutBtn').addEventListener('click', function () {
+                try { window.open('media.html?popup=1', '_blank', 'noopener'); } catch (e) {}
+            });
+            // Header: popup tab owns its auth (user gesture keeps the
+            // Google popup unblocked, same as the Settings button).
+            if ($('authBtn')) $('authBtn').addEventListener('click', function () {
+                const dot = $('authDot');
+                if (dot && dot.classList.contains('signed')) signOut();
+                else requestToken();
+            });
+            if (POPUP) {
+                // Standalone wording: no Settings parent exists here.
+                const st = $('authStatus');
+                if (st && /Settings/.test(st.textContent || '')) {
+                    st.textContent = 'Not signed in — tap Sign In above';
+                }
+                const emptyLabel = document.querySelector('#stageEmpty span:last-child');
+                if (emptyLabel && /Settings/.test(emptyLabel.innerHTML || '')) {
+                    emptyLabel.innerHTML = 'Tap Sign In above<br>to load photos, audio &amp; video.';
+                }
+                const emptyTitle = document.querySelector('.media-header-subtitle');
+                if (emptyTitle) emptyTitle.textContent = 'Photo · Audio · Video · Full Tab';
+            }
             $('videoEl').addEventListener('ended', onMediaEnded);
             $('audioEl').addEventListener('ended', function () {
                 $('audioDisc').classList.remove('playing');

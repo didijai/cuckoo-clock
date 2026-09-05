@@ -8,10 +8,14 @@
     <title>Media Panel</title>
 
     <!-- Self-contained like learn.html: same fonts, chalet/amber theme.
-         Embeds a private Google Drive folder (photo/audio/video) and
-         auto-rotates through it. Drive Sign In/Out lives in the parent
-         Settings panel and drives this iframe via postMessage; the parent
-         also pushes the rotation interval. -->
+          Embeds a private Google Drive folder (photo/audio/video) and
+          auto-rotates through it. Drive Sign In/Out lives in the parent
+          Settings panel and drives this iframe via postMessage; the parent
+          also pushes the rotation interval.
+          Popup mode: opened standalone as media.html?popup=1 (via the
+          panel's "Open in New Tab" / header pop-out), body.popup widens
+          the layout (fluid browse grid, taller stage) and the header owns
+          its own Sign In/Out button since no Settings parent exists. -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600;700&display=swap"
         rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -56,7 +60,7 @@
             border: 1px solid rgba(217, 119, 6, 0.5);
             color: #fbbf24;
         }
-        .media-header-text { display: flex; flex-direction: column; line-height: 1.2; }
+        .media-header-text { display: flex; flex-direction: column; line-height: 1.2; flex: 1; min-width: 0; }
         .media-header-title {
             font-family: 'Cinzel', serif; font-weight: 700; font-size: 15px;
             color: #fcd34d; letter-spacing: 0.5px; line-height: 1.2;
@@ -77,35 +81,57 @@
             color: #fcd34d; opacity: 0.7; font-weight: 700; margin-bottom: 7px;
         }
 
-        /* ----- Read-only Drive status (auth buttons live in Settings) ----- */
-        .drive-status {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 11px; color: #94a3b8;
-            background: rgba(2, 6, 23, 0.6);
-            border: 1px solid rgba(217, 119, 6, 0.25);
-            border-radius: 10px; padding: 8px 10px;
-        }
-        .drive-status span:last-child {
-            flex: 1; min-width: 0; white-space: nowrap;
-            overflow: hidden; text-overflow: ellipsis;
-        }
-        .auth-dot {
-            flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%;
-            background: #64748b;
-        }
-        .auth-dot.signed { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,.7); }
+        /* Docked in the side panel, the outer panel chrome already shows
+           the "Media Gallery" title — hide this inner header so the title
+           appears exactly once. Standalone popup tab (body.popup) keeps
+           it (it owns the Sign In button there). */
+        body:not(.popup) .media-header { display: none; }
 
-        /* ----- Viewer / Browse segmented toggle ----- */
+        /* ----- Header actions (popup tab only, since the header above is
+           docked-hidden): Sign In/Out owns auth standalone; pop-out is a
+           fallback when this page is framed with ?popup=1. ----- */
+        .media-header-actions {
+            margin-left: auto; flex-shrink: 0;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; border-radius: 9px; cursor: pointer;
+            border: 1px solid rgba(217, 119, 6, 0.45);
+            background: rgba(120, 53, 15, 0.55); color: #fbbf24;
+            transition: background 0.2s, transform 0.15s;
+            font-size: 14px; line-height: 1; padding: 0;
+        }
+        .icon-btn:hover { background: rgba(180, 83, 9, 0.75); }
+        .icon-btn:active { transform: scale(0.92); }
+        .auth-btn {
+            border: 1px solid rgba(217, 119, 6, 0.45);
+            background: rgba(120, 53, 15, 0.55); color: #fef3c7;
+            font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11px;
+            padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap;
+        }
+        .auth-btn:hover { background: rgba(180, 83, 9, 0.75); }
+        /* Standalone popup tab (body.popup): auth lives here, pop-out is hidden. */
+        body.popup #popoutBtn { display: none; }
+        #authBtn { display: none; }
+        body.popup #authBtn { display: inline-block; }
+
+        /* ----- Single-row toolbar: Viewer/Browse + Prev/Pause/Next -----
+           One flex row (wraps only on extremely narrow widths) so the
+           five buttons share a single compact strip instead of two rows. */
+        .media-toolbar {
+            display: flex; gap: 8px; align-items: stretch; flex-shrink: 0;
+        }
         .view-toggle {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+            flex: 0 0 auto; display: flex; gap: 0;
             background: rgba(2, 6, 23, 0.7);
             border: 1px solid rgba(217, 119, 6, 0.35);
             border-radius: 12px; padding: 3px;
         }
         .view-toggle button {
             border: 0; background: transparent; color: #94a3b8;
-            font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px;
-            padding: 8px 6px; border-radius: 9px; cursor: pointer;
+            font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11px;
+            padding: 7px 10px; border-radius: 9px; cursor: pointer; white-space: nowrap;
             transition: background 0.2s, color 0.2s, box-shadow 0.2s;
         }
         .view-toggle button.active {
@@ -187,12 +213,15 @@
         }
         .progress-fill.waiting { background: linear-gradient(90deg, #16a34a, #4ade80); }
 
-        /* ----- Controls ----- */
-        .media-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        /* ----- Controls (right half of the single-row toolbar) ----- */
+        .media-controls {
+            flex: 1 1 auto; min-width: 0;
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
+        }
         .media-btn {
-            padding: 10px 6px; border-radius: 12px; font-weight: 700; font-size: 12px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
-            border: 1px solid rgba(217, 119, 6, 0.45);
+            padding: 7px 2px; border-radius: 10px; font-weight: 700; font-size: 11px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+            border: 1px solid rgba(217, 119, 6, 0.45); white-space: nowrap; min-width: 0;
             transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
         }
         .media-btn:active { transform: scale(0.96); }
@@ -202,9 +231,11 @@
         .media-btn.ghost:hover { background: rgba(180, 83, 9, 0.65); }
         .media-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* ----- Browse grid (replaces the old "Up Next" strip) ----- */
+        /* ----- Browse grid: fluid columns from available width -----
+           auto-fill + minmax replaces the old hardcoded 3-per-row so the
+           grid uses narrow docked panels and wide popup tabs equally well. */
         .browse-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px;
             overflow-y: auto;
         }
         .browse-cell {
@@ -236,21 +267,77 @@
             text-align: center; padding: 18px 8px; line-height: 1.6;
         }
 
+        /* ----- Single status bar: auth + count on the left, slideshow
+           state on the right. Replaces the old two-row layout (separate
+           Drive-status card + "Every Xs" note that duplicated "Next in Xs"). */
         .media-footer {
             margin-top: auto; padding-top: 8px;
             border-top: 1px solid rgba(217, 119, 6, 0.2);
             display: flex; align-items: center; justify-content: space-between; gap: 8px;
             flex-shrink: 0; font-size: 10px; color: #94a3b8;
         }
-        .rotate-note { display: flex; align-items: center; gap: 6px; min-width: 0; }
-        .rotate-note span:last-child {
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        .status-group {
+            display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto;
         }
+        .status-group.right { justify-content: flex-end; flex: 0 1 auto; }
+        .status-group span:last-child {
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+        }
+        .auth-dot {
+            flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%;
+            background: #64748b;
+        }
+        .auth-dot.signed { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,.7); }
         .rotate-dot {
             flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: #4ade80;
             box-shadow: 0 0 6px rgba(74, 222, 128, 0.7);
         }
         .rotate-dot.paused { background: #64748b; box-shadow: none; }
+
+        /* ----- Popup (full-tab) mode: body.popup is set when media.html
+           runs standalone (opened via the panel's "Open in New Tab").
+           Full-bleed layout: no centering cap, and the viewer stage /
+           browse grid stretch to fill leftover vertical space. ----- */
+        body.popup .media-body {
+            max-width: none; width: 100%; margin: 0;
+            padding: 20px 32px; gap: 16px;
+        }
+        @media (min-width: 1600px) {
+            body.popup .media-body { padding: 24px 48px; }
+        }
+        body.popup .media-header { padding: 14px 32px; }
+        body.popup .media-header-title { font-size: 17px; }
+        body.popup #viewerView { flex: 1; min-height: 0; }
+        body.popup .stage-card {
+            flex: 1; min-height: 0; display: flex; flex-direction: column;
+        }
+        body.popup .stage-view {
+            flex: 1 1 auto; height: auto;
+            min-height: clamp(300px, calc(100vh - 340px), 780px);
+        }
+        body.popup #browseView { flex: 1; min-height: 0; }
+        body.popup .browse-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
+            flex: 1; min-height: 0; align-content: start;
+        }
+        body.popup .browse-name { font-size: 11px; padding: 7px 8px; }
+        body.popup .media-toolbar { gap: 12px; }
+        /* Popup: cap the three control buttons and center them in the
+           leftover space instead of stretching them across the tab. */
+        body.popup .media-controls {
+            grid-template-columns: repeat(3, minmax(96px, 150px));
+            justify-content: center; align-content: stretch;
+        }
+        body.popup .view-toggle button { font-size: 12px; padding: 8px 16px; }
+        body.popup .media-btn { font-size: 12px; padding: 8px 6px; }
+        body.popup .media-footer { font-size: 11px; }
+        /* Extremely narrow docked widths: let the toolbar wrap instead of
+           crushing the five buttons into one row. */
+        @media (max-width: 300px) {
+            .media-toolbar { flex-wrap: wrap; }
+            .view-toggle { flex: 1 1 100%; }
+            .view-toggle button { flex: 1; }
+        }
     </style>
 </head>
 
@@ -267,17 +354,26 @@
                 <span class="media-header-title">Media Gallery</span>
                 <span class="media-header-subtitle">Photo · Audio · Video</span>
             </div>
+            <div class="media-header-actions">
+                <!-- Popup tab owns its auth (no Settings parent there). -->
+                <button type="button" class="auth-btn" id="authBtn">Sign In</button>
+                <!-- Docked panel: pop out into a standalone full tab. -->
+                <button type="button" class="icon-btn" id="popoutBtn" title="Open in New Tab">↗</button>
+            </div>
         </div>
 
         <div class="media-body">
-            <!-- Read-only status; Sign In/Out buttons live in Settings. -->
-            <div class="drive-status">
-                <span class="auth-dot" id="authDot"></span><span id="authStatus">Not signed in — use Settings → Media to sign in</span>
-            </div>
-
-            <div class="view-toggle" role="tablist" aria-label="Gallery view">
-                <button type="button" id="viewerTab" class="active" role="tab">Viewer</button>
-                <button type="button" id="browseTab" role="tab">Browse</button>
+            <!-- Single-row toolbar: Viewer/Browse + Prev/Pause/Next share one strip. -->
+            <div class="media-toolbar" role="toolbar" aria-label="Gallery controls">
+                <div class="view-toggle" role="tablist" aria-label="Gallery view">
+                    <button type="button" id="viewerTab" class="active" role="tab">Viewer</button>
+                    <button type="button" id="browseTab" role="tab">Browse</button>
+                </div>
+                <div class="media-controls">
+                    <button type="button" class="media-btn ghost" id="prevBtn" disabled>‹ Prev</button>
+                    <button type="button" class="media-btn ghost" id="playBtn" disabled>⏸ Pause</button>
+                    <button type="button" class="media-btn ghost" id="nextBtn" disabled>Next ›</button>
+                </div>
             </div>
 
             <!-- Single-item viewer (slideshow) -->
@@ -304,12 +400,6 @@
                     </div>
                     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
                 </div>
-
-                <div class="media-controls">
-                    <button type="button" class="media-btn ghost" id="prevBtn" disabled>‹ Prev</button>
-                    <button type="button" class="media-btn ghost" id="playBtn" disabled>⏸ Pause</button>
-                    <button type="button" class="media-btn ghost" id="nextBtn" disabled>Next ›</button>
-                </div>
             </div>
 
             <!-- Thumbnail browse grid (lightweight thumbnailLinks only —
@@ -323,12 +413,18 @@
                 <div class="browse-grid" id="browseGrid"></div>
             </div>
 
+            <!-- Single status bar: auth + item count | slideshow state.
+                 The old separate Drive-status card and the "Every Xs" note
+                 (which duplicated "Next in Xs") are folded into this row. -->
             <div class="media-footer">
-                <div class="rotate-note">
+                <div class="status-group">
+                    <span class="auth-dot" id="authDot"></span>
+                    <span id="authStatus">Not signed in — use Settings → Media to sign in</span>
+                </div>
+                <div class="status-group right">
                     <span class="rotate-dot paused" id="rotateDot"></span>
                     <span id="rotateNote">Sign in to load media</span>
                 </div>
-                <span id="intervalNote"></span>
             </div>
         </div>
     </div>

@@ -674,12 +674,41 @@
     </aside>
 
     <!-- Media Gallery Panel: left-docked Drive-backed slideshow
-         (photo/audio/video). Content lives in the self-contained
-         media.html / media.js (loaded via iframe); the parent page only
-         shows/hides this wrapper, reserves screen space and pushes the
-         rotation interval. Stacks to the right of bus/learn when several
-         panels are open (see positionSidePanels() in script.js). -->
+          (photo/audio/video). Content lives in the self-contained
+          media.html / media.js (loaded via iframe); the parent page only
+          shows/hides this wrapper, reserves screen space and pushes the
+          rotation interval. Stacks to the right of bus/learn when several
+          panels are open (see positionSidePanels() in script.js).
+          Header mirrors the bus panel: title + reload + open-in-new-tab
+          (popup mode = standalone media.html?popup=1 full-tab layout). -->
     <aside id="mediaPanel" aria-hidden="true">
+        <div class="bus-panel-header">
+            <div class="p-1.5 bg-amber-900/50 rounded-lg border border-amber-600/40 text-amber-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16l4-4 4 4 4-4 4 4M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1zm3 4a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                </svg>
+            </div>
+            <div class="flex flex-col leading-tight mr-auto min-w-0">
+                <span class="bus-panel-title">Media Gallery</span>
+                <span class="bus-panel-subtitle">Drive · Photo Audio Video</span>
+            </div>
+            <button id="mediaReloadBtn" class="bus-panel-btn" title="Reload Gallery">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                    </path>
+                </svg>
+            </button>
+            <a id="mediaOpenTabLink" href="media.html?popup=1" target="_blank" rel="noopener noreferrer"
+                class="bus-panel-btn" title="Open in New Tab">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+                    </path>
+                </svg>
+            </a>
+        </div>
         <!-- No src here: lazy-loaded on first open like the Learn panel. -->
         <iframe id="mediaFrame" title="Media Gallery (Drive photos, audio, video)"></iframe>
     </aside>

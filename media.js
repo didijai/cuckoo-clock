@@ -153,6 +153,56 @@
         renderBrowse();
     }
 
+    // ---- Silent-first token renewal -------------------------------------
+    // GIS issues no refresh tokens: an access token dies after ~1h and only
+    // a new token-client grant replaces it. `prompt: 'none'` is the true
+    // silent mode (never shows UI); anything else — including '' — may pop
+    // the account chooser. So background paths (boot, 401 recovery) always
+    // use 'none' and degrade to the signed-out UI, while the chooser only
+    // ever appears synchronously inside a real click (Settings / header).
+    let silentWaiters = []; // resolve fns sharing the in-flight grant
+    let silentRefreshPending = false;
+
+    function flushSilentWaiters(token) {
+        const waiters = silentWaiters;
+        silentWaiters = [];
+        silentRefreshPending = false;
+        waiters.forEach(function (resolve) {
+            try { resolve(token || null); } catch (e) {}
+        });
+        return waiters.length;
+    }
+
+    function sleep(ms) {
+        return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    }
+
+    function signinNeededUI() {
+        setAuthUI(false, 'Sign-in needed — ' + signinHint());
+    }
+
+    // Resolves to a usable token, or null when interaction is required.
+    // Concurrent callers share the single in-flight grant (GIS allows only
+    // one pending token request per client). force=true skips the
+    // unexpired cache — used after a 401 on a token the cache still trusts.
+    function silentRefreshToken(force) {
+        if (!force) {
+            const cached = getCachedToken();
+            if (cached) return Promise.resolve(cached);
+        }
+        if (!tokenClient) return Promise.resolve(null);
+        return new Promise(function (resolve) {
+            silentWaiters.push(resolve);
+            if (silentRefreshPending) return; // piggyback the running grant
+            silentRefreshPending = true;
+            try {
+                tokenClient.requestAccessToken({ prompt: 'none' });
+            } catch (e) {
+                flushSilentWaiters(null);
+            }
+        });
+    }
+
     function initGsi() {
         if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
             setTimeout(initGsi, 100);
@@ -164,12 +214,21 @@
             callback: function (response) {
                 if (response && response.access_token) {
                     saveToken(response.access_token, response.expires_in);
+                    // A silent flow owns what happens next (its continuation
+                    // reloads or retries); only interactive grants act here.
+                    if (flushSilentWaiters(response.access_token)) return;
                     setAuthUI(true);
                     loadLibrary(response.access_token);
-                } else if (response && response.error) {
-                    console.warn('Token request failed, need user click:', response);
-                    setAuthUI(false, 'Sign-in needed — use Settings → Media → Sign In');
+                } else {
+                    // Denied/failed grant: silent waiters degrade quietly,
+                    // interactive attempts surface the sign-in hint.
+                    if (!flushSilentWaiters(null)) signinNeededUI();
                 }
+            },
+            // Popup closed/blocked and other non-OAuth failures land here
+            // instead of `callback` — route them the same way.
+            error_callback: function () {
+                if (!flushSilentWaiters(null)) signinNeededUI();
             }
         });
 
@@ -180,8 +239,17 @@
         } else {
             try {
                 if (localStorage.getItem(TOKEN_KEY)) {
-                    // Had a token but expired -> silent refresh when possible.
-                    tokenClient.requestAccessToken({ prompt: '' });
+                    // Had a token but it expired -> background renewal only.
+                    // No gesture here, so 'none' either returns a token or
+                    // fails quietly into the signed-out UI. Never a popup.
+                    silentRefreshToken(true).then(function (tok) {
+                        if (tok) {
+                            setAuthUI(true, 'Signed in (restored)');
+                            loadLibrary(tok);
+                        } else {
+                            setAuthUI(false, 'Session expired — ' + signinHint());
+                        }
+                    });
                 } else {
                     setAuthUI(false, 'Not signed in — ' + signinHint());
                 }
@@ -189,9 +257,11 @@
         }
     }
 
-    // Called from Settings (via postMessage) or the empty-state hint.
-    // Must run inside a user gesture when it pops up (Settings click
-    // counts — the message is dispatched synchronously from the click).
+    // Called from Settings (via postMessage) or the header auth button —
+    // always inside a user gesture, so the account chooser is allowed when
+    // Google genuinely needs it. First grant asks consent; returning users
+    // omit `prompt` so Google silently reuses the session when possible
+    // and only shows UI when it must.
     function requestToken() {
         const cached = getCachedToken();
         if (cached) {
@@ -201,13 +271,71 @@
         if (!tokenClient) { setAuthUI(false, 'Auth still loading… try again from Settings'); return; }
         try {
             const hadPrior = (() => { try { return !!localStorage.getItem(TOKEN_KEY); } catch (e) { return false; } })();
-            tokenClient.requestAccessToken({ prompt: hadPrior ? '' : 'consent' });
+            if (hadPrior) tokenClient.requestAccessToken();
+            else tokenClient.requestAccessToken({ prompt: 'consent' });
         } catch (e) {
             setAuthUI(false, 'Sign-in popup blocked? Try again from Settings');
         }
     }
 
     /* ---------------- Drive listing -------------------------------------- */
+    // Drive 403 reasons that mean "slow down", NOT "signed out".
+    const RATE_LIMIT_REASONS = {
+        rateLimitExceeded: 1, userRateLimitExceeded: 1,
+        quotaExceeded: 1, dailyLimitExceeded: 1, usageLimits: 1
+    };
+
+    async function driveErrorReason(res) {
+        try {
+            const body = JSON.parse(await res.text());
+            const errs = body && body.error && body.error.errors;
+            if (errs && errs.length && errs[0].reason) return String(errs[0].reason);
+        } catch (e) {}
+        return '';
+    }
+
+    // Auth-aware Drive fetch shared by listing + blob downloads:
+    //  - 401: the token died mid-session -> ONE silent renewal (prompt
+    //    'none', no UI), then a single retry. Only a genuinely dead
+    //    session clears the cache and signs out.
+    //  - 403 rate/quota: back off and retry (up to 3x), KEEPING the token.
+    //    Throttling must never look like a sign-out.
+    //  - 403 otherwise (sharing revoked, etc.): access-denied UI WITHOUT
+    //    wiping the token — re-login cannot fix permissions.
+    async function driveFetch(url, token, state) {
+        state = state || {};
+        const res = await fetch(url, {
+            headers: { Authorization: 'Bearer ' + token }
+        });
+        if (res.status === 401) {
+            if (!state.authRetried) {
+                const fresh = await silentRefreshToken(true);
+                if (fresh && fresh !== token) {
+                    return driveFetch(url, fresh, { authRetried: true, rateRetried: state.rateRetried || 0 });
+                }
+            }
+            clearToken();
+            setAuthUI(false, 'Session expired — ' + signinHint());
+            const err = new Error('unauthorized'); err.authFailed = true; throw err;
+        }
+        if (res.status === 403) {
+            const reason = await driveErrorReason(res);
+            const rateTries = state.rateRetried || 0;
+            if (RATE_LIMIT_REASONS[reason] && rateTries < 3) {
+                await sleep(Math.round(700 * Math.pow(2, rateTries) + Math.random() * 300));
+                return driveFetch(url, token, { authRetried: state.authRetried, rateRetried: rateTries + 1 });
+            }
+            if (!RATE_LIMIT_REASONS[reason]) {
+                setAuthUI(false, 'Drive access denied — check folder sharing');
+                const derr = new Error('forbidden: ' + (reason || 'unknown')); derr.accessDenied = true; throw derr;
+            }
+            // Rate limit still biting after retries: the token is still
+            // valid, so keep it and surface a transient error.
+            const terr = new Error('drive throttled, try again'); terr.throttled = true; throw terr;
+        }
+        return res;
+    }
+
     function kindOf(mime) {
         const m = String(mime || '');
         if (m.indexOf('image/') === 0) return 'photo';
@@ -229,14 +357,7 @@
             const all = [];
             let pageToken = null;
             do {
-                const res = await fetch(pageToken ? url + '&pageToken=' + encodeURIComponent(pageToken) : url, {
-                    headers: { Authorization: 'Bearer ' + accessToken }
-                });
-                if (res.status === 401 || res.status === 403) {
-                    clearToken();
-                    setAuthUI(false, 'Session expired — sign in again from Settings');
-                    return;
-                }
+                const res = await driveFetch(pageToken ? url + '&pageToken=' + encodeURIComponent(pageToken) : url, accessToken);
                 if (!res.ok) throw new Error('Drive list failed: ' + res.status);
                 const data = await res.json();
                 (data.files || []).forEach(function (f) {
@@ -271,9 +392,17 @@
             renderBrowse();
             updateFooter();
         } catch (err) {
-            console.error('[Media] load failed:', err);
-            setAuthUI(true, 'Load failed — sign in again from Settings to retry');
-            if (!opts.silent) renderEmpty('Could not load media. Check your connection, then sign in again from Settings.');
+            if (err && (err.authFailed || err.accessDenied)) {
+                // driveFetch already updated the auth UI; just stop here.
+                console.warn('[Media] load stopped:', err.message);
+            } else if (err && err.throttled) {
+                console.warn('[Media] load throttled:', err.message);
+                updateFooter('Drive busy — tap Refresh to retry');
+            } else {
+                console.error('[Media] load failed:', err);
+                setAuthUI(true, 'Load failed — check connection, then Refresh');
+                if (!opts.silent) renderEmpty('Could not load media. Check your connection, then tap Refresh.');
+            }
         } finally {
             refreshing = false;
             syncRefreshBtn();
@@ -330,14 +459,7 @@
         if (objectUrls[file.id]) { touchFullCache(file.id); return objectUrls[file.id]; }
         const token = accessToken || getCachedToken();
         if (!token) throw new Error('no token');
-        const res = await fetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media', {
-            headers: { Authorization: 'Bearer ' + token }
-        });
-        if (res.status === 401 || res.status === 403) {
-            clearToken();
-            setAuthUI(false, 'Session expired — sign in again from Settings');
-            throw new Error('unauthorized');
-        }
+        const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media', token);
         if (!res.ok) throw new Error('media fetch failed: ' + res.status);
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -453,6 +575,13 @@
                 scheduleNext(Math.max(rotateSec * 1000, 5000) + 180000, false, true);
             }
         } catch (err) {
+            // Session died mid-slideshow: stop instead of pointlessly
+            // skipping through every file (auth UI already updated).
+            if (err && (err.authFailed || err.accessDenied)) {
+                console.warn('[Media] show stopped:', file.name, err.message);
+                renderEmpty(signedOutHint());
+                return;
+            }
             console.warn('[Media] show failed:', file.name, err);
             $('fileName').textContent = file.name + ' (failed to load — skipping…)';
             scheduleNext(3000, false);

@@ -74,9 +74,9 @@
                 let a, b, text, answer, operator;
 
                 if (caseId === 1) {
-                    // Both single-digit, sum strictly less than 10.
-                    a = randInt(1, 8);
-                    b = randInt(1, 9 - a); // keeps a + b <= 9
+                    // Both single-digit, sum strictly <= 10.
+                    a = randInt(1, 9);
+                    b = randInt(1, 10 - a); // keeps a + b <= 10
                     operator = '+';
                 // } else if (caseId === 2) {
                 //     // Single-digit number plus a multiple of 10 (10..90).
@@ -89,8 +89,8 @@
                 //     b = randInt(1, (90 - a) / 10) * 10; // 10..(90-a)
                 //     operator = '+';
                 } else {
-                    // Subtraction of two single digits, never negative.
-                    a = randInt(1, 9);
+                    // Subtraction never negative.
+                    a = randInt(1, 10);
                     b = randInt(1, a); // b <= a, so a - b >= 0
                     operator = '-';
                 }

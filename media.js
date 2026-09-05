@@ -6,7 +6,6 @@
    pushes the rotation interval (`media-config`). This iframe reports its
    auth/library state back (`media-auth-status`) so Settings can show it.
 
-   - Same CLIENT_ID / FOLDER_ID as the reference demo (dummy/index.html).
    - Token cached in localStorage with early-renewal buffer + silent refresh.
    - Lists image + video + audio files in the folder (id/name/mimeType +
      thumbnailLink). FULL file bytes are fetched on demand for the viewer
@@ -19,9 +18,13 @@
      (keeps blobs for files still present, drops the rest).
    - Browse suspends the slideshow (timer cleared, hidden media paused);
      returning to Viewer resumes the current item.
-   - Auto-rotate: images advance every `rotateSec` (default 30s, set by the
-     parent Settings and persisted there). Audio/video play through, then
-     wait `rotateSec` after the `ended` event before advancing.
+    - Auto-rotate: images advance every `rotateSec` (default 30s, set by the
+      parent Settings and persisted there). Popup full-tab keeps the
+      cinematic behavior: audio/video play through, then wait `rotateSec`
+      after the `ended` event before advancing. Docked beside the clock
+      it is a pure slideshow: video/audio NEVER autoplay (preview frame
+      only, native controls for manual play) and rotation stays strictly
+      on the timer — manual playback never disturbs it.
     - Two views: Viewer (single-item slideshow) and Browse (thumbnail grid).
     - Popup mode: opened standalone as media.html?popup=1 (panel header
       "Open in New Tab" / header pop-out button, same pattern as the bus
@@ -563,16 +566,29 @@
                 const v = $('videoEl');
                 v.src = url;
                 v.hidden = false;
-                try { await v.play(); } catch (e) { /* autoplay blocked: user presses play, `ended` still rotates */ }
-                // Rotation is armed on `ended` (plus a safety timeout in
-                // case `ended` never fires for a corrupt file).
-                scheduleNext(Math.max(rotateSec * 1000, 5000) + 120000, false, true);
+                if (POPUP) {
+                    try { await v.play(); } catch (e) { /* autoplay blocked: user presses play, `ended` still rotates */ }
+                    // Rotation is armed on `ended` (plus a safety timeout in
+                    // case `ended` never fires for a corrupt file).
+                    scheduleNext(Math.max(rotateSec * 1000, 5000) + 120000, false, true);
+                } else {
+                    // Docked beside the clock: never autoplay (no motion or
+                    // sound competing with the clock). The first frame still
+                    // previews; rotation stays on the photo timer and manual
+                    // playback via native controls never disturbs it.
+                    scheduleNext(rotateSec * 1000, false);
+                }
             } else {
                 $('audioWrap').hidden = false;
                 const a = $('audioEl');
                 a.src = url;
-                try { await a.play(); $('audioDisc').classList.add('playing'); } catch (e) {}
-                scheduleNext(Math.max(rotateSec * 1000, 5000) + 180000, false, true);
+                if (POPUP) {
+                    try { await a.play(); $('audioDisc').classList.add('playing'); } catch (e) {}
+                    scheduleNext(Math.max(rotateSec * 1000, 5000) + 180000, false, true);
+                } else {
+                    // Docked: no autoplay, timer-only rotation (see video).
+                    scheduleNext(rotateSec * 1000, false);
+                }
             }
         } catch (err) {
             // Session died mid-slideshow: stop instead of pointlessly
@@ -623,6 +639,10 @@
 
     function onMediaEnded() {
         if (!files.length) return;
+        // Docked slideshow runs on the timer only: a manually-played media
+        // ending must neither clear nor re-arm anything — leave the running
+        // timer (and its countdown UI) completely alone.
+        if (!POPUP) return;
         // Spec: audio/video wait `rotateSec` AFTER finishing before rotating.
         clearRotateTimer();
         if (viewMode === 'browse' || !playing) { updateFooter(); return; }
@@ -759,6 +779,8 @@
             return;
         }
         if ((cur.kind === 'video' || cur.kind === 'audio')) {
+            // Docked: no autoplay on return either — fresh photo-style timer.
+            if (!POPUP) { scheduleNext(rotateSec * 1000, false); return; }
             const el = cur.kind === 'video' ? $('videoEl') : $('audioEl');
             if (el && el.src && !el.ended) {
                 stopProgress();
@@ -1031,13 +1053,16 @@
                 $('audioDisc').classList.remove('playing');
                 onMediaEnded();
             });
-            $('videoEl').addEventListener('play', function () { stopProgress(); updateFooter('Playing…'); });
+            // Manual playback must not disturb the slideshow UI. Popup:
+            // playback owns rotation, so reflect it. Docked: the timer owns
+            // rotation, so leave the countdown alone (disc still spins).
+            $('videoEl').addEventListener('play', function () { if (POPUP) { stopProgress(); updateFooter('Playing…'); } });
             $('audioEl').addEventListener('play', function () {
                 $('audioDisc').classList.add('playing');
-                stopProgress(); updateFooter('Playing…');
+                if (POPUP) { stopProgress(); updateFooter('Playing…'); }
             });
             $('videoEl').addEventListener('pause', function () {
-                if (playing && !$('videoEl').hidden && !$('videoEl').ended) updateFooter('Paused video — slideshow waits');
+                if (POPUP && playing && !$('videoEl').hidden && !$('videoEl').ended) updateFooter('Paused video — slideshow waits');
             });
             setView(viewMode);
             syncControls();

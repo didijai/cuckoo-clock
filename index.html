@@ -53,6 +53,18 @@
                 <span class="hidden sm:inline">Learn</span>
             </button>
 
+            <!-- Media Gallery Shortcut: one-tap toggle of the Drive-backed
+                 photo/audio/video module. Mirrors the Learn shortcut; also
+                 controllable from Settings. -->
+            <button id="mediaToggleBtn" title="Toggle Media Gallery"
+                class="flex items-center gap-2 px-3 py-2 media-toggle-btn font-bold text-xs rounded-xl transition shadow-md">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16l4-4 4 4 4-4 4 4M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1zm3 4a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                </svg>
+                <span class="hidden sm:inline">Media</span>
+            </button>
+
             <!-- Floating Settings Gear Button -->
             <button id="openSettingsBtn" title="Open Settings Panel"
                 class="p-2.5 sm:p-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold rounded-2xl shadow-2xl transition-all border border-amber-400/50 flex items-center justify-center group">
@@ -661,6 +673,17 @@
         <iframe id="learnFrame" title="Learn Panel (Math Addition)"></iframe>
     </aside>
 
+    <!-- Media Gallery Panel: left-docked Drive-backed slideshow
+         (photo/audio/video). Content lives in the self-contained
+         media.html / media.js (loaded via iframe); the parent page only
+         shows/hides this wrapper, reserves screen space and pushes the
+         rotation interval. Stacks to the right of bus/learn when several
+         panels are open (see positionSidePanels() in script.js). -->
+    <aside id="mediaPanel" aria-hidden="true">
+        <!-- No src here: lazy-loaded on first open like the Learn panel. -->
+        <iframe id="mediaFrame" title="Media Gallery (Drive photos, audio, video)"></iframe>
+    </aside>
+
     <!-- Quick Route Sidebar: one-tap shortcuts that open the bus schedule
          panel pre-loaded with a specific route. Buttons are generated from
          the user-managed shortcut list (Settings -> Bus Route Shortcuts,
@@ -867,6 +890,46 @@
                             class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
                         </div>
                     </label>
+                </div>
+
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex flex-col">
+                        <span class="text-slate-300 font-medium">Show Media Gallery</span>
+                        <span class="text-[10px] text-slate-500">Drive photos · audio · video docked left, auto-rotates</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="mediaPanelToggle" class="sr-only peer">
+                        <div
+                            class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600">
+                        </div>
+                    </label>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>Media Rotate Every</span>
+                        <span id="mediaRotateVal" class="text-slate-200">30s</span>
+                    </div>
+                    <input id="mediaRotateSlider" type="range" min="5" max="120" step="5" value="30"
+                        class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-[10px] text-slate-500 mt-1">Photos advance on this timer; audio/video play first, then wait this long.</p>
+                </div>
+
+                <!-- Google Drive auth for the Media gallery. The gallery
+                     iframe owns the OAuth flow; these buttons just command
+                     it via postMessage (signin must stay in a user gesture
+                     so the Google popup is not blocked). -->
+                <div class="space-y-2 bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                    <div class="flex items-center gap-2 text-xs">
+                        <span id="mediaAuthDot" class="shrink-0 w-2 h-2 rounded-full bg-slate-500"></span>
+                        <span id="mediaAuthStatus" class="flex-1 min-w-0 truncate text-slate-400">Drive: not signed in</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="mediaSignInBtn" type="button"
+                            class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-bold text-xs rounded-lg transition">Sign In</button>
+                        <button id="mediaSignOutBtn" type="button"
+                            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-semibold text-xs rounded-lg border border-slate-700 transition">Sign Out</button>
+                    </div>
                 </div>
 
                 <div class="space-y-2" id="ttsModeRow">

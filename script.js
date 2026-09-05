@@ -160,6 +160,8 @@ let lastSecond = -1;
 let lastTickSide = false;
 let busScheduleEnabled = false; // Bus schedule panel ON/OFF (Settings toggle)
 let learnPanelEnabled = false; // Learning panel (Math -> Addition) ON/OFF
+let mediaPanelEnabled = false; // Media gallery (Drive photo/audio/video) ON/OFF
+let mediaRotateSec = 30; // Slideshow interval in seconds (Settings, persisted)
 // Unified Read-Aloud (TTS) mode: 'off' | 'auto' | 'browser' | 'google'.
 // 'off' == muted; 'auto' == browser with Google fallback; 'browser'/'google'
 // are exclusive with no fallback (silent on failure). Default 'auto'.
@@ -263,6 +265,8 @@ function saveSettings() {
             autoRewindEnabled,
             busScheduleEnabled,
             learnPanelEnabled,
+            mediaPanelEnabled,
+            mediaRotateSec,
             ttsMode,
             ttsEnabled,
             ttsEngine,
@@ -310,6 +314,21 @@ const learnPanel = document.getElementById('learnPanel');
 const learnFrame = document.getElementById('learnFrame');
 const learnPanelToggle = document.getElementById('learnPanelToggle');
 const learnToggleBtn = document.getElementById('learnToggleBtn');
+// Media Gallery Panel (Drive photo/audio/video). Same left-docked pattern
+// as Learn: self-contained iframe (media.html + media.js); the parent only
+// controls visibility, screen space and the rotation interval.
+const mediaPanel = document.getElementById('mediaPanel');
+const mediaFrame = document.getElementById('mediaFrame');
+const mediaPanelToggle = document.getElementById('mediaPanelToggle');
+const mediaToggleBtn = document.getElementById('mediaToggleBtn');
+const mediaRotateSlider = document.getElementById('mediaRotateSlider');
+const mediaRotateVal = document.getElementById('mediaRotateVal');
+// Drive auth buttons live in Settings; they command the gallery iframe
+// via postMessage (the iframe owns the Google OAuth flow).
+const mediaSignInBtn = document.getElementById('mediaSignInBtn');
+const mediaSignOutBtn = document.getElementById('mediaSignOutBtn');
+const mediaAuthDot = document.getElementById('mediaAuthDot');
+const mediaAuthStatus = document.getElementById('mediaAuthStatus');
 // Unified TTS mode buttons (2x2 grid). Legacy `ttsToggle` / `ttsEngine*Btn`
 // IDs no longer exist in the markup; lookups are guarded so old cached
 // pages don't throw.
@@ -626,28 +645,38 @@ busReloadBtn.addEventListener('click', () => {
 });
 
 // On narrow viewports, allow only ONE left-docked panel at a time so the
-// clock keeps enough room. When `keep` ('bus' or 'learn') opens while the
-// other is also open (and the screen is below the coexist breakpoint),
-// collapse the other panel and sync its Settings toggle + state.
+// clock keeps enough room. When `keep` ('bus', 'learn' or 'media') opens
+// while another is also open (and the screen is below the coexist
+// breakpoint), collapse the others and sync their Settings toggles + state.
 function collapseOtherPanel(keep) {
     if (window.innerWidth >= PANEL_COEXIST_MIN_WIDTH) return;
-    if (keep === 'learn' && busScheduleEnabled) {
+    let collapsed = false;
+    if (keep !== 'bus' && busScheduleEnabled) {
         busScheduleEnabled = false;
         busScheduleToggle.checked = false;
         hideBusPanel();
         activeRouteUrl = null;
         syncShortcutHighlight();
-    } else if (keep === 'bus' && learnPanelEnabled) {
+        collapsed = true;
+    }
+    if (keep !== 'learn' && learnPanelEnabled) {
         learnPanelEnabled = false;
         learnPanelToggle.checked = false;
         hideLearnPanel();
         syncLearnHighlight();
-    } else {
-        return; // nothing collapsed -> no repositioning needed
+        collapsed = true;
     }
+    if (keep !== 'media' && mediaPanelEnabled) {
+        mediaPanelEnabled = false;
+        mediaPanelToggle.checked = false;
+        hideMediaPanel();
+        syncMediaHighlight();
+        collapsed = true;
+    }
+    if (!collapsed) return; // nothing collapsed -> no repositioning needed
     // Re-flow the remaining panel's position after collapsing the
-    // other (e.g. learn moves back left once the bus panel is gone).
-    positionLearnPanel();
+    // other(s) (e.g. learn moves back left once the bus panel is gone).
+    positionSidePanels();
 }
 
 // ===== Learn Panel (Math -> Addition) =====
@@ -703,9 +732,24 @@ learnFrame.addEventListener('load', notifyLearnTTSState);
 
 // The iframe asks for its TTS state on boot (in case it loaded before the
 // parent attached the `load` listener). Answer with the same message shape.
+// Also answers the Media iframe's queries and mirrors its auth state into
+// the Settings Drive row.
 window.addEventListener('message', (e) => {
     if (e.source === learnFrame.contentWindow && e.data && e.data.type === 'learn-tts-query') {
         notifyLearnTTSState();
+        return;
+    }
+    if (e.data && e.data.type === 'media-config-query') {
+        notifyMediaConfig();
+        return;
+    }
+    if (e.data && e.data.type === 'media-auth-query') {
+        notifyMediaConfig();
+        requestMediaAuthStatus();
+        return;
+    }
+    if (e.data && e.data.type === 'media-auth-status') {
+        syncMediaAuthUI(!!e.data.signedIn, e.data.statusText || '');
     }
 });
 
@@ -756,26 +800,54 @@ if (ttsModeAutoBtn) ttsModeAutoBtn.addEventListener('click', () => setTTSMode('a
 if (ttsModeBrowserBtn) ttsModeBrowserBtn.addEventListener('click', () => setTTSMode('browser'));
 if (ttsModeGoogleBtn) ttsModeGoogleBtn.addEventListener('click', () => setTTSMode('google'));
 
-// Keep the panel shifted to the right of the bus schedule panel when
-// both are open on wide screens, so they never overlap.
-function positionLearnPanel() {
-    if (!learnPanelEnabled) return;
-    if (busScheduleEnabled && window.innerWidth >= 640) {
-        // Compute the bus panel's FINAL resting geometry from its fixed
-        // CSS (left: 16px, width: min(420px, 36vw)) instead of reading
-        // getBoundingClientRect(). The rect is polluted by the entrance
-        // transition: the panel animates transform translateX(-16px) ->
-        // none over 0.35s, so a measurement taken right after enabling
-        // still reports the -16px shift, which made the learn panel sit
-        // ~16px too far LEFT and let the two panels overlap once the bus
-        // panel finished sliding into place.
-        const busLeft = 16;
-        const busWidth = Math.min(420, window.innerWidth * 0.36);
-        const busFinalRight = busLeft + busWidth;
-        learnPanel.style.left = Math.max(busFinalRight + 12, 16) + 'px';
-    } else {
-        learnPanel.style.left = ''; // fall back to the CSS default (16px)
+// Keep the left-docked panels stacked left -> right (bus, learn, media)
+// so they never overlap on wide screens. Widths mirror the fixed CSS:
+//   bus:   left 16px, width min(420px, 36vw)
+//   learn: width min(320px, 30vw)
+//   media: width min(360px, 32vw)
+// Geometry is computed from CSS (not getBoundingClientRect()) because the
+// entrance transition pollutes live measurements (see original comment).
+function positionSidePanels() {
+    const busLeft = 16;
+    const busWidth = Math.min(420, window.innerWidth * 0.36);
+    const learnWidth = Math.min(320, window.innerWidth * 0.30);
+    const GAP = 12;
+    let cursor = busLeft; // right edge of placed panels + gap cursor
+    const narrowOverlay = window.innerWidth < 640;
+    if (narrowOverlay) {
+        // Overlay mode: all panels cover the viewport, no shifting needed.
+        if (learnPanel) learnPanel.style.left = '';
+        if (mediaPanel) mediaPanel.style.left = '';
+        return;
     }
+    if (busScheduleEnabled) {
+        cursor = busLeft + busWidth + GAP;
+    }
+    if (learnPanelEnabled && learnPanel) {
+        if (busScheduleEnabled) {
+            learnPanel.style.left = Math.max(cursor, 16) + 'px';
+            cursor = Math.max(cursor, 16) + learnWidth + GAP;
+        } else {
+            learnPanel.style.left = ''; // CSS default (16px)
+            cursor = 16 + learnWidth + GAP;
+        }
+    }
+    if (mediaPanelEnabled && mediaPanel) {
+        if (busScheduleEnabled || learnPanelEnabled) {
+            mediaPanel.style.left = Math.max(cursor, 16) + 'px';
+        } else {
+            mediaPanel.style.left = ''; // CSS default (16px)
+        }
+    }
+}
+
+// Legacy name kept for existing call sites: now re-flows every panel.
+function positionLearnPanel() {
+    positionSidePanels();
+}
+
+function positionMediaPanel() {
+    positionSidePanels();
 }
 
 // Reflect the Learn panel's ON/OFF state on the header shortcut button
@@ -808,6 +880,141 @@ learnToggleBtn.addEventListener('click', () => {
 // Settings toggle.
 learnPanelToggle.addEventListener('change', (e) => {
     setLearnPanelEnabled(e.target.checked);
+});
+
+// ===== Media Gallery Panel (Drive photo/audio/video) =====
+// Same left-docked pattern as Learn. The iframe owns the Drive auth,
+// library and auto-rotate; the parent only shows/hides the wrapper,
+// reserves screen space and pushes the rotation interval.
+
+function showMediaPanel() {
+    mediaPanel.classList.add('visible');
+    mediaPanel.setAttribute('aria-hidden', 'false');
+    // Lazy-load the iframe only on first use so the page stays
+    // light when the feature is never opened.
+    if (!mediaFrame.src || mediaFrame.src === window.location.href || mediaFrame.src === 'about:blank') {
+        mediaFrame.src = 'media.html';
+    }
+    positionSidePanels();
+    // The iframe needs the rotation interval once it loads; push it on
+    // every `load` (see mediaFrame load listener below).
+    notifyMediaConfig();
+}
+
+function hideMediaPanel() {
+    mediaPanel.classList.remove('visible');
+    mediaPanel.setAttribute('aria-hidden', 'true');
+}
+
+// Push the persisted rotation interval to the Media iframe.
+function notifyMediaConfig() {
+    if (!mediaFrame || !mediaFrame.contentWindow) return;
+    try {
+        mediaFrame.contentWindow.postMessage({
+            type: 'media-config',
+            rotateSec: mediaRotateSec
+        }, '*');
+    } catch (err) {
+        /* iframe not ready yet — re-sent on its `load` event */
+    }
+}
+
+// Whenever the iframe finishes loading, (re)send the interval so a
+// freshly-opened panel always starts with the persisted value.
+mediaFrame.addEventListener('load', () => {
+    notifyMediaConfig();
+    requestMediaAuthStatus();
+});
+
+// Drive auth bridge: Settings buttons command the iframe. Sign-in stays
+// in the click gesture so the Google popup is never blocked. If the
+// iframe hasn't loaded yet, open the panel first so the command lands.
+function sendMediaAuth(action) {
+    if (!mediaPanelEnabled) setMediaPanelEnabled(true);
+    const post = () => {
+        try {
+            mediaFrame.contentWindow.postMessage({ type: 'media-auth', action }, '*');
+        } catch (err) { /* iframe not ready — load handler re-syncs */ }
+    };
+    if (!mediaFrame.src || mediaFrame.src === window.location.href || mediaFrame.src === 'about:blank') {
+        mediaFrame.addEventListener('load', post, { once: true });
+    } else {
+        post();
+    }
+}
+
+function requestMediaAuthStatus() {
+    try {
+        if (mediaFrame && mediaFrame.contentWindow) {
+            mediaFrame.contentWindow.postMessage({ type: 'media-auth', action: 'status' }, '*');
+        }
+    } catch (err) {}
+}
+
+function syncMediaAuthUI(signedIn, statusText) {
+    if (mediaAuthStatus) {
+        mediaAuthStatus.textContent = 'Drive: ' + (statusText || (signedIn ? 'signed in' : 'not signed in'));
+        mediaAuthStatus.title = mediaAuthStatus.textContent;
+    }
+    if (mediaAuthDot) {
+        mediaAuthDot.className = 'shrink-0 w-2 h-2 rounded-full ' +
+            (signedIn ? 'bg-emerald-400' : 'bg-slate-500');
+    }
+    if (mediaSignInBtn) mediaSignInBtn.disabled = !!signedIn;
+    if (mediaSignOutBtn) mediaSignOutBtn.disabled = !signedIn;
+    if (mediaSignInBtn) mediaSignInBtn.classList.toggle('opacity-40', !!signedIn);
+    if (mediaSignOutBtn) mediaSignOutBtn.classList.toggle('opacity-40', !signedIn);
+}
+
+if (mediaSignInBtn) mediaSignInBtn.addEventListener('click', () => sendMediaAuth('signin'));
+if (mediaSignOutBtn) mediaSignOutBtn.addEventListener('click', () => sendMediaAuth('signout'));
+// Refresh the Settings auth row whenever the modal opens (iframe may
+// have signed in/out while Settings was closed).
+if (openSettingsBtn) openSettingsBtn.addEventListener('click', requestMediaAuthStatus);
+
+// Reflect the Media panel's ON/OFF state on the header shortcut button
+// (bright when open, dim when closed) — same pattern as Learn.
+function syncMediaHighlight() {
+    if (mediaToggleBtn) mediaToggleBtn.classList.toggle('active', mediaPanelEnabled);
+}
+
+// Toggle used by BOTH the Settings checkbox and the header shortcut.
+function setMediaPanelEnabled(on) {
+    mediaPanelEnabled = on;
+    mediaPanelToggle.checked = on;
+    if (on) {
+        collapseOtherPanel('media'); // narrow screens: one panel at a time
+        showMediaPanel();
+    } else {
+        hideMediaPanel();
+    }
+    syncMediaHighlight();
+    fitClockToScreen();
+    saveSettings();
+}
+
+// Header "Media" shortcut: one tap toggles the panel.
+if (mediaToggleBtn) mediaToggleBtn.addEventListener('click', () => {
+    setMediaPanelEnabled(!mediaPanelEnabled);
+});
+
+// Settings toggle.
+if (mediaPanelToggle) mediaPanelToggle.addEventListener('change', (e) => {
+    setMediaPanelEnabled(e.target.checked);
+});
+
+// Rotation interval slider: live label + debounced persist + push to iframe.
+function syncMediaRotateUI() {
+    if (mediaRotateSlider) mediaRotateSlider.value = String(mediaRotateSec);
+    if (mediaRotateVal) mediaRotateVal.textContent = mediaRotateSec + 's';
+}
+if (mediaRotateSlider) mediaRotateSlider.addEventListener('input', (e) => {
+    const n = Math.round(Number(e.target.value));
+    if (!isFinite(n)) return;
+    mediaRotateSec = Math.min(120, Math.max(5, n));
+    if (mediaRotateVal) mediaRotateVal.textContent = mediaRotateSec + 's';
+    notifyMediaConfig();
+    debouncedSaveSettings();
 });
 
 // ===== Bus Route Shortcuts: Sidebar + Settings Manager =====
@@ -1136,12 +1343,20 @@ function fitClockToScreen() {
     }
     if (learnPanelEnabled) {
         // Learn panel is shifted right of the bus panel when both are
-        // open (see positionLearnPanel()); otherwise it sits at 16px.
+        // open (see positionSidePanels()); otherwise it sits at 16px.
         const learnWidth = Math.min(320, window.innerWidth * 0.30);
         const learnLeft = busScheduleEnabled
             ? Math.max(12 + rightmostPanel, 16)
             : 16;
         rightmostPanel = Math.max(rightmostPanel, learnLeft + learnWidth);
+    }
+    if (mediaPanelEnabled) {
+        // Media stacks rightmost of bus/learn (see positionSidePanels()).
+        const mediaWidth = Math.min(360, window.innerWidth * 0.32);
+        const mediaLeft = (busScheduleEnabled || learnPanelEnabled)
+            ? Math.max(12 + rightmostPanel, 16)
+            : 16;
+        rightmostPanel = Math.max(rightmostPanel, mediaLeft + mediaWidth);
     }
 
     if (rightmostPanel > 0 && window.innerWidth >= 640) {
@@ -1211,6 +1426,19 @@ if (savedSettings) {
     }
     if (typeof savedSettings.busScheduleEnabled === 'boolean') busScheduleEnabled = savedSettings.busScheduleEnabled;
     if (typeof savedSettings.learnPanelEnabled === 'boolean') learnPanelEnabled = savedSettings.learnPanelEnabled;
+    if (typeof savedSettings.mediaPanelEnabled === 'boolean') mediaPanelEnabled = savedSettings.mediaPanelEnabled;
+    if (typeof savedSettings.mediaRotateSec === 'number' && isFinite(savedSettings.mediaRotateSec)) {
+        mediaRotateSec = Math.min(120, Math.max(5, Math.round(savedSettings.mediaRotateSec)));
+    } else {
+        // Fall back to the iframe-local key so a standalone media.html
+        // interval choice is picked up on first load.
+        try {
+            const local = Math.round(Number(localStorage.getItem('clock.mediaRotateSec')));
+            if (isFinite(local) && local >= 5 && local <= 300) {
+                mediaRotateSec = Math.min(120, Math.max(5, local));
+            }
+        } catch (err) { /* keep default 30s */ }
+    }
     // New unified key wins; fall back to the legacy pair
     // (ttsEnabled boolean + ttsEngine string) from earlier versions.
     if (savedSettings.ttsMode === 'off' || savedSettings.ttsMode === 'auto' || savedSettings.ttsMode === 'browser' || savedSettings.ttsMode === 'google') {
@@ -1291,18 +1519,25 @@ if (learnPanelEnabled) {
     showLearnPanel();
 }
 syncLearnHighlight();
+if (mediaPanelEnabled) {
+    mediaPanelToggle.checked = true;
+    showMediaPanel();
+}
+syncMediaHighlight();
+syncMediaRotateUI();
+syncMediaAuthUI(false, 'not signed in');
 syncTTSStateFromMode();
 syncTTSModeButtons();
 
-// Enforce one-panel-at-a-time if the viewport is narrow but both were
+// Enforce one-panel-at-a-time if the viewport is narrow but several were
 // saved as enabled (e.g. restored from a wider-screen session).
 // collapseOtherPanel() also re-positions the surviving panel, so no
-// separate positionLearnPanel() is needed here.
-if (busScheduleEnabled && learnPanelEnabled) {
+// separate positionSidePanels() is needed here.
+if ((busScheduleEnabled && learnPanelEnabled) || (busScheduleEnabled && mediaPanelEnabled) || (learnPanelEnabled && mediaPanelEnabled)) {
     collapseOtherPanel('bus');
 }
 
-// Both panels are restored above; fit once.
+// All panels are restored above; fit once.
 fitClockToScreen();
 
 digitalTimeToggle.checked = digitalTimeOverlay.classList.contains('visible');

@@ -6,7 +6,19 @@
    pushes the rotation interval (`media-config`). This iframe reports its
    auth/library state back (`media-auth-status`) so Settings can show it.
 
-   - Token cached in localStorage with early-renewal buffer + silent refresh.
+   Auth: Owner-token broker (proven in index-poc.html + Code.gs).
+   - No CLIENT_ID / FOLDER_ID / OAuth scope in this repo. Both load from
+     the Apps Script via action=config (public bootstrap).
+   - Sign In With Google (GIS ID, not OAuth token-client) sends a one-time
+     ID token to the Script (action=session). Script verifies aud/expiry/
+     email_verified + ALLOWLIST, returns a permanent opaque session stored
+     in localStorage (gallery_session + gallery_email).
+   - Script mints short folder-scoped SA access_tokens (action=token,
+     memory only, never localStorage). Drive is called DIRECTLY with that
+     SA token. On 401 the SA token is silently re-minted behind the
+     permanent session — no hidden iframe, no 3P cookies, no hourly expiry.
+   - Sign out deletes the server session + local copy.
+
    - Lists image + video + audio files in the folder (id/name/mimeType +
      thumbnailLink). FULL file bytes are fetched on demand for the viewer
      only (current item + neighbours, cached as object URLs). The Browse
@@ -29,20 +41,22 @@
     - Popup mode: opened standalone as media.html?popup=1 (panel header
       "Open in New Tab" / header pop-out button, same pattern as the bus
       schedule panel). body.popup widens the layout (fluid auto-fill grid,
-      taller stage) and the header owns a Sign In/Out button, since no
-      Settings parent exists to drive auth via postMessage. Token cache in
+      taller stage) and the header owns the GIS Sign In button, since no
+      Settings parent exists to drive auth via postMessage. Session in
       localStorage is shared, so signing in once signs in both modes.
     ========================================================================== */
 (function () {
     'use strict';
 
-    // Same values as E:\workspace\dummy\index.html — do not change.
-    const CLIENT_ID = '219675970458-evrvj3a8ouldd0d52uqtepvr1sud26s6.apps.googleusercontent.com';
-    const FOLDER_ID = '1qY0ptECT-jFf0hxfq2fL49uYMFmP0Ztv';
-    const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+    // Owner-token broker. Same deployment as index-poc.html. CLIENT_ID +
+    // FOLDER_ID are NOT hardcoded here — they load via action=config so a
+    // rotated client ID in Script Properties is picked up automatically.
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9f_ZrE3PKRJNMKnfu_HyaECOYwgRo3TgzgwKHmu8glQGPcJa0kz3GG6-2IT3pL96A/exec';
+    const LS_SESS = 'gallery_session';
+    const LS_EMAIL = 'gallery_email';
+    const broker = { clientId: '', folderId: '', ready: false };
+    let saToken = null; // NEVER localStorage — memory only
 
-    const TOKEN_KEY = 'gdrive_access_token';
-    const EXPIRY_KEY = 'gdrive_token_expiry';
     // Rotation interval is owned by the parent Settings page, but keep a
     // local fallback so the panel still works standalone / in tests.
     const LOCAL_INTERVAL_KEY = 'clock.mediaRotateSec';
@@ -61,13 +75,12 @@
     if (POPUP && document.body) document.body.classList.add('popup');
 
     // Auth hint wording depends on who owns Sign In: the Settings parent
-    // when docked, the header button when in popup mode.
+    // when docked, the header GIS button when in popup mode.
     function signinHint() {
         return POPUP ? 'tap Sign In above to load media'
                      : 'use Settings → Media to sign in';
     }
 
-    let tokenClient = null;
     let files = [];            // [{id,name,mimeType,kind,thumbnailLink}]
     let objectUrls = {};       // fileId -> FULL blob object URL (viewer cache)
     let thumbObserver = null;  // IntersectionObserver: only load visible tiles
@@ -84,39 +97,63 @@
     let waitingAfterMedia = false; // true while counting down post-ended
 
     const $ = (id) => document.getElementById(id);
+    const getSess = () => { try { return localStorage.getItem(LS_SESS) || ''; } catch (e) { return ''; } };
+    const getEmail = () => { try { return localStorage.getItem(LS_EMAIL) || ''; } catch (e) { return ''; } };
 
-    /* ---------------- token cache (same approach as reference demo) ------ */
-    function getCachedToken() {
-        try {
-            const token = localStorage.getItem(TOKEN_KEY);
-            const expiry = Number(localStorage.getItem(EXPIRY_KEY) || 0);
-            if (!token) return null;
-            if (Date.now() >= expiry) return null;
-            return token;
-        } catch (e) { return null; }
-    }
-    function saveToken(accessToken, expiresInSec) {
-        try {
-            const expiry = Date.now() + (Number(expiresInSec) || 3600) * 1000 - 60 * 1000;
-            localStorage.setItem(TOKEN_KEY, accessToken);
-            localStorage.setItem(EXPIRY_KEY, String(expiry));
-        } catch (e) { /* private mode: session-only */ }
-    }
-    function clearToken() {
-        try {
-            localStorage.removeItem(TOKEN_KEY);
-            localStorage.removeItem(EXPIRY_KEY);
-        } catch (e) {}
+    function sleep(ms) {
+        return new Promise(function (resolve) { setTimeout(resolve, ms); });
     }
 
-    /* ---------------- auth (driven from parent Settings) ----------------- */
+    /* ---------------- broker transport ---------------------------------- */
+    async function scriptApi(body) {
+        // POST-only: sessions must not appear in URL logs/history.
+        const r = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(body),
+        });
+        return await r.json();
+    }
+
+    async function loadBrokerConfig() {
+        const cfg = await scriptApi({ action: 'config' });
+        if (!cfg.client_id || !cfg.folder_id || String(cfg.client_id).indexOf('PASTE') === 0) {
+            throw new Error('backend not configured (CFG_CLIENT_ID / CFG_FOLDER_ID)');
+        }
+        broker.clientId = cfg.client_id;
+        broker.folderId = cfg.folder_id;
+        broker.ready = true;
+    }
+
+    async function ensureSaToken() {
+        if (saToken) return saToken;
+        const sess = getSess();
+        if (!sess) { const e = new Error('unauthorized'); e.authFailed = true; throw e; }
+        const data = await scriptApi({ action: 'token', session: sess });
+        if (data.error) {
+            if (data.error === 'unauthorized') {
+                clearSessionLocal();
+                setAuthUI(false, 'Session invalid — ' + signinHint());
+                const e = new Error('unauthorized'); e.authFailed = true; throw e;
+            }
+            throw new Error(data.error);
+        }
+        saToken = data.access_token;
+        return saToken;
+    }
+
+    function clearSessionLocal() {
+        try { localStorage.removeItem(LS_SESS); } catch (e) {}
+        try { localStorage.removeItem(LS_EMAIL); } catch (e) {}
+        saToken = null;
+    }
+
+    /* ---------------- auth UI -------------------------------------------- */
     function setAuthUI(signedIn, statusText) {
         const dot = $('authDot'), status = $('authStatus');
         if (dot) dot.classList.toggle('signed', !!signedIn);
         if (status) status.textContent = statusText || (signedIn ? 'Signed in' : 'Not signed in');
-        // Popup tab owns its auth: keep the header button label in sync.
-        const authBtn = $('authBtn');
-        if (authBtn) authBtn.textContent = signedIn ? 'Sign Out' : 'Sign In';
+        paintGisVisibility(!!signedIn);
         // Mirror the state to the parent Settings panel (no-op standalone).
         try {
             if (window.parent && window.parent !== window) {
@@ -130,6 +167,18 @@
         } catch (e) {}
     }
 
+    // GIS button = Sign In, header authBtn = Sign Out only. Exactly one is
+    // visible at a time so there is never a dead "Sign In" that does nothing.
+    function paintGisVisibility(signedIn) {
+        const gisBtns = [$('g_id_signin'), $('g_id_signin_body')].filter(Boolean);
+        const authBtn = $('authBtn');
+        gisBtns.forEach(function (el) { el.style.display = signedIn ? 'none' : ''; });
+        if (authBtn) {
+            authBtn.style.display = signedIn ? '' : 'none';
+            authBtn.textContent = 'Sign Out';
+        }
+    }
+
     // Copy shown when signed out — points at Settings when docked,
     // at the header button when in popup mode.
     function signedOutHint() {
@@ -137,14 +186,15 @@
                      : 'Signed out. Use Settings → Media → Sign In to reload.';
     }
 
-    function signOut() {
+    async function signOut() {
+        const s = getSess();
+        if (s) { try { await scriptApi({ action: 'logout', session: s }); } catch (e) {} }
+        clearSessionLocal();
         try {
-            const cached = (() => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } })();
-            if (cached && window.google && window.google.accounts && window.google.accounts.oauth2) {
-                try { window.google.accounts.oauth2.revoke(cached, function () {}); } catch (e) {}
+            if (window.google && google.accounts && google.accounts.id) {
+                try { google.accounts.id.disableAutoSelect(); } catch (e) {}
             }
         } catch (e) {}
-        clearToken();
         stopPlayback();
         files = [];
         currentIndex = 0;
@@ -154,130 +204,68 @@
         syncControls();
         updateFooter();
         renderBrowse();
+        initGis();
     }
 
-    // ---- Silent-first token renewal -------------------------------------
-    // GIS issues no refresh tokens: an access token dies after ~1h and only
-    // a new token-client grant replaces it. `prompt: 'none'` is the true
-    // silent mode (never shows UI); anything else — including '' — may pop
-    // the account chooser. So background paths (boot, 401 recovery) always
-    // use 'none' and degrade to the signed-out UI, while the chooser only
-    // ever appears synchronously inside a real click (Settings / header).
-    let silentWaiters = []; // resolve fns sharing the in-flight grant
-    let silentRefreshPending = false;
-
-    function flushSilentWaiters(token) {
-        const waiters = silentWaiters;
-        silentWaiters = [];
-        silentRefreshPending = false;
-        waiters.forEach(function (resolve) {
-            try { resolve(token || null); } catch (e) {}
-        });
-        return waiters.length;
-    }
-
-    function sleep(ms) {
-        return new Promise(function (resolve) { setTimeout(resolve, ms); });
-    }
-
-    function signinNeededUI() {
-        setAuthUI(false, 'Sign-in needed — ' + signinHint());
-    }
-
-    // Resolves to a usable token, or null when interaction is required.
-    // Concurrent callers share the single in-flight grant (GIS allows only
-    // one pending token request per client). force=true skips the
-    // unexpired cache — used after a 401 on a token the cache still trusts.
-    function silentRefreshToken(force) {
-        if (!force) {
-            const cached = getCachedToken();
-            if (cached) return Promise.resolve(cached);
-        }
-        if (!tokenClient) return Promise.resolve(null);
-        return new Promise(function (resolve) {
-            silentWaiters.push(resolve);
-            if (silentRefreshPending) return; // piggyback the running grant
-            silentRefreshPending = true;
-            try {
-                tokenClient.requestAccessToken({ prompt: 'none' });
-            } catch (e) {
-                flushSilentWaiters(null);
-            }
-        });
-    }
-
-    function initGsi() {
-        if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
-            setTimeout(initGsi, 100);
-            return;
-        }
-        tokenClient = window.google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: function (response) {
-                if (response && response.access_token) {
-                    saveToken(response.access_token, response.expires_in);
-                    // A silent flow owns what happens next (its continuation
-                    // reloads or retries); only interactive grants act here.
-                    if (flushSilentWaiters(response.access_token)) return;
-                    setAuthUI(true);
-                    loadLibrary(response.access_token);
-                } else {
-                    // Denied/failed grant: silent waiters degrade quietly,
-                    // interactive attempts surface the sign-in hint.
-                    if (!flushSilentWaiters(null)) signinNeededUI();
-                }
-            },
-            // Popup closed/blocked and other non-OAuth failures land here
-            // instead of `callback` — route them the same way.
-            error_callback: function () {
-                if (!flushSilentWaiters(null)) signinNeededUI();
-            }
-        });
-
-        const cached = getCachedToken();
-        if (cached) {
-            setAuthUI(true, 'Signed in (restored)');
-            loadLibrary(cached);
-        } else {
-            try {
-                if (localStorage.getItem(TOKEN_KEY)) {
-                    // Had a token but it expired -> background renewal only.
-                    // No gesture here, so 'none' either returns a token or
-                    // fails quietly into the signed-out UI. Never a popup.
-                    silentRefreshToken(true).then(function (tok) {
-                        if (tok) {
-                            setAuthUI(true, 'Signed in (restored)');
-                            loadLibrary(tok);
-                        } else {
-                            setAuthUI(false, 'Session expired — ' + signinHint());
-                        }
-                    });
-                } else {
-                    setAuthUI(false, 'Not signed in — ' + signinHint());
-                }
-            } catch (e) { setAuthUI(false); }
-        }
-    }
-
-    // Called from Settings (via postMessage) or the header auth button —
-    // always inside a user gesture, so the account chooser is allowed when
-    // Google genuinely needs it. First grant asks consent; returning users
-    // omit `prompt` so Google silently reuses the session when possible
-    // and only shows UI when it must.
-    function requestToken() {
-        const cached = getCachedToken();
-        if (cached) {
-            loadLibrary(cached);
-            return;
-        }
-        if (!tokenClient) { setAuthUI(false, 'Auth still loading… try again from Settings'); return; }
+    // GIS ID credential -> permanent broker session (POC flow).
+    async function onGoogleCredential(resp) {
+        setAuthUI(false, 'Verifying …');
         try {
-            const hadPrior = (() => { try { return !!localStorage.getItem(TOKEN_KEY); } catch (e) { return false; } })();
-            if (hadPrior) tokenClient.requestAccessToken();
-            else tokenClient.requestAccessToken({ prompt: 'consent' });
+            const data = await scriptApi({ action: 'session', id_token: resp.credential });
+            if (data.error) { setAuthUI(false, 'Denied: ' + data.error); return; }
+            try {
+                localStorage.setItem(LS_SESS, data.session);
+                localStorage.setItem(LS_EMAIL, data.email);
+            } catch (e) {}
+            saToken = null;
+            setAuthUI(true, 'Signed in as ' + data.email);
+            loadLibrary();
         } catch (e) {
-            setAuthUI(false, 'Sign-in popup blocked? Try again from Settings');
+            setAuthUI(false, 'Sign-in failed — ' + (e.message || e));
+        }
+    }
+
+    function initGis() {
+        if (!broker.ready) return;
+        if (!window.google || !google.accounts || !google.accounts.id) {
+            setTimeout(initGis, 200);
+            return;
+        }
+        try {
+            google.accounts.id.initialize({
+                client_id: broker.clientId,
+                callback: onGoogleCredential,
+                auto_select: true,
+            });
+        } catch (e) { /* already initialized — continue to render */ }
+        [['g_id_signin', 'pill'], ['g_id_signin_body', 'outline']].forEach(function ([id]) {
+            const host = $(id);
+            if (!host) return;
+            try {
+                host.innerHTML = '';
+                google.accounts.id.renderButton(host, { theme: 'filled_black', size: 'medium' });
+            } catch (e) {}
+        });
+        paintGisVisibility(!!getSess());
+        try { google.accounts.id.prompt(); } catch (e) {}
+    }
+
+    // Parent Settings "Sign In" (or header tap) when no session exists:
+    // session stays permanent, so this only fires One Tap / focuses GIS.
+    // When a session already exists it just (re)loads the library.
+    function requestSignIn() {
+        if (!broker.ready) { setAuthUI(false, 'Backend still loading… try again'); return; }
+        if (getSess()) { loadLibrary(); return; }
+        setAuthUI(false, 'Sign-in needed — ' + signinHint());
+        try {
+            if (window.google && google.accounts && google.accounts.id) {
+                google.accounts.id.prompt();
+            }
+        } catch (e) {}
+        // Docked header is hidden, so also surface the inline GIS button.
+        const inline = $('g_id_signin_body');
+        if (inline) {
+            try { inline.scrollIntoView({ block: 'nearest' }); } catch (e) {}
         }
     }
 
@@ -297,27 +285,30 @@
         return '';
     }
 
-    // Auth-aware Drive fetch shared by listing + blob downloads:
-    //  - 401: the token died mid-session -> ONE silent renewal (prompt
-    //    'none', no UI), then a single retry. Only a genuinely dead
-    //    session clears the cache and signs out.
+    // Auth-aware Drive fetch (SA token, broker-minted):
+    //  - 401: SA token expired (~1h) -> drop it, mint a fresh one behind the
+    //    permanent session, retry once. Only a dead session signs out.
     //  - 403 rate/quota: back off and retry (up to 3x), KEEPING the token.
     //    Throttling must never look like a sign-out.
-    //  - 403 otherwise (sharing revoked, etc.): access-denied UI WITHOUT
-    //    wiping the token — re-login cannot fix permissions.
-    async function driveFetch(url, token, state) {
+    //  - 403 otherwise (SA share revoked, etc.): access-denied UI. The
+    //    session is kept — re-login cannot fix sharing.
+    async function driveFetch(url, state) {
         state = state || {};
+        const t = await ensureSaToken();
         const res = await fetch(url, {
-            headers: { Authorization: 'Bearer ' + token }
+            headers: { Authorization: 'Bearer ' + t }
         });
         if (res.status === 401) {
             if (!state.authRetried) {
-                const fresh = await silentRefreshToken(true);
-                if (fresh && fresh !== token) {
-                    return driveFetch(url, fresh, { authRetried: true, rateRetried: state.rateRetried || 0 });
+                saToken = null; // hourly SA token expired -> fresh one
+                try {
+                    await ensureSaToken();
+                    return driveFetch(url, { authRetried: true, rateRetried: state.rateRetried || 0 });
+                } catch (e) {
+                    throw e; // session dead -> ensureSaToken already signed out
                 }
             }
-            clearToken();
+            clearSessionLocal();
             setAuthUI(false, 'Session expired — ' + signinHint());
             const err = new Error('unauthorized'); err.authFailed = true; throw err;
         }
@@ -326,10 +317,10 @@
             const rateTries = state.rateRetried || 0;
             if (RATE_LIMIT_REASONS[reason] && rateTries < 3) {
                 await sleep(Math.round(700 * Math.pow(2, rateTries) + Math.random() * 300));
-                return driveFetch(url, token, { authRetried: state.authRetried, rateRetried: rateTries + 1 });
+                return driveFetch(url, { authRetried: state.authRetried, rateRetried: rateTries + 1 });
             }
             if (!RATE_LIMIT_REASONS[reason]) {
-                setAuthUI(false, 'Drive access denied — check folder sharing');
+                setAuthUI(true, 'Drive access denied — check SA folder sharing');
                 const derr = new Error('forbidden: ' + (reason || 'unknown')); derr.accessDenied = true; throw derr;
             }
             // Rate limit still biting after retries: the token is still
@@ -347,12 +338,15 @@
         return 'other';
     }
 
-    async function loadLibrary(accessToken, opts) {
+    async function loadLibrary(opts) {
         opts = opts || {};
-        setAuthUI(true, 'Loading media…');
+        if (!broker.ready) { setAuthUI(false, 'Backend not ready — try Refresh'); return; }
+        if (!getSess()) { setAuthUI(false, 'Not signed in — ' + signinHint()); return; }
+        const email = getEmail();
+        setAuthUI(true, 'Loading media…' + (email ? ' (' + email + ')' : ''));
         if (!opts.silent) renderEmpty('Loading your Drive media…');
         try {
-            const q = "'" + FOLDER_ID + "' in parents and " +
+            const q = "'" + broker.folderId + "' in parents and " +
                 "(mimeType contains 'image/' or mimeType contains 'video/' or mimeType contains 'audio/') and " +
                 'trashed = false';
             let url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) +
@@ -360,7 +354,7 @@
             const all = [];
             let pageToken = null;
             do {
-                const res = await driveFetch(pageToken ? url + '&pageToken=' + encodeURIComponent(pageToken) : url, accessToken);
+                const res = await driveFetch(pageToken ? url + '&pageToken=' + encodeURIComponent(pageToken) : url);
                 if (!res.ok) throw new Error('Drive list failed: ' + res.status);
                 const data = await res.json();
                 (data.files || []).forEach(function (f) {
@@ -387,7 +381,7 @@
                 setAuthUI(true, 'Signed in — folder is empty');
                 renderEmpty('No photos, audio or video found in this Drive folder yet.');
             } else {
-                setAuthUI(true, 'Signed in · ' + files.length + ' item' + (files.length === 1 ? '' : 's'));
+                setAuthUI(true, 'Signed in · ' + files.length + ' item' + (files.length === 1 ? '' : 's') + (email ? ' · ' + email : ''));
                 showIndex(currentIndex);
                 preloadAround(currentIndex);
             }
@@ -396,14 +390,15 @@
             updateFooter();
         } catch (err) {
             if (err && (err.authFailed || err.accessDenied)) {
-                // driveFetch already updated the auth UI; just stop here.
+                // driveFetch/ensureSaToken already updated the auth UI; stop.
                 console.warn('[Media] load stopped:', err.message);
+                if (err.authFailed) { renderEmpty(signedOutHint()); }
             } else if (err && err.throttled) {
                 console.warn('[Media] load throttled:', err.message);
                 updateFooter('Drive busy — tap Refresh to retry');
             } else {
                 console.error('[Media] load failed:', err);
-                setAuthUI(true, 'Load failed — check connection, then Refresh');
+                setAuthUI(!!getSess(), 'Load failed — check connection, then Refresh');
                 if (!opts.silent) renderEmpty('Could not load media. Check your connection, then tap Refresh.');
             }
         } finally {
@@ -416,12 +411,11 @@
     // Never mass-downloads: full blobs stay cached, thumbnails refill lazily.
     function refreshLibrary() {
         if (refreshing) return;
-        const token = getCachedToken();
-        if (!token) { requestToken(); return; }
+        if (!getSess()) { requestSignIn(); return; }
         refreshing = true;
         syncRefreshBtn();
         const cur = files[currentIndex];
-        loadLibrary(token, { preserveId: cur ? cur.id : null, silent: true });
+        loadLibrary({ preserveId: cur ? cur.id : null, silent: true });
     }
 
     function syncRefreshBtn() {
@@ -458,11 +452,9 @@
         }
     }
 
-    async function blobUrlFor(file, accessToken) {
+    async function blobUrlFor(file) {
         if (objectUrls[file.id]) { touchFullCache(file.id); return objectUrls[file.id]; }
-        const token = accessToken || getCachedToken();
-        if (!token) throw new Error('no token');
-        const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media', token);
+        const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media');
         if (!res.ok) throw new Error('media fetch failed: ' + res.status);
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -991,13 +983,13 @@
         if (data.type === 'media-config' && typeof data.rotateSec !== 'undefined') {
             applyRotateSec(data.rotateSec, false);
         } else if (data.type === 'media-auth' && typeof data.action === 'string') {
-            if (data.action === 'signin' || data.action === 'reload') requestToken();
+            if (data.action === 'signin' || data.action === 'reload') requestSignIn();
             else if (data.action === 'signout') signOut();
             else if (data.action === 'refresh') refreshLibrary();
             else if (data.action === 'status') {
                 // Parent re-opened Settings and wants a fresh status push.
                 const dot = $('authDot');
-                setAuthUI(dot ? dot.classList.contains('signed') : !!getCachedToken(),
+                setAuthUI(dot ? dot.classList.contains('signed') : !!getSess(),
                     $('authStatus') ? $('authStatus').textContent : undefined);
             }
         }
@@ -1015,7 +1007,9 @@
 
     /* ---------------- boot ----------------------------------------------- */
     document.addEventListener('DOMContentLoaded', function () {
-        try {
+        let booted = false;
+        function wireStaticOnce() {
+            if (booted) return; booted = true;
             rotateSec = readLocalInterval();
             viewMode = readLocalView();
             $('prevBtn').addEventListener('click', function () { step(-1); });
@@ -1028,13 +1022,8 @@
             if ($('popoutBtn')) $('popoutBtn').addEventListener('click', function () {
                 try { window.open('media.html?popup=1', '_blank', 'noopener'); } catch (e) {}
             });
-            // Header: popup tab owns its auth (user gesture keeps the
-            // Google popup unblocked, same as the Settings button).
-            if ($('authBtn')) $('authBtn').addEventListener('click', function () {
-                const dot = $('authDot');
-                if (dot && dot.classList.contains('signed')) signOut();
-                else requestToken();
-            });
+            // Header auth button is Sign Out only — Sign In is the GIS button.
+            if ($('authBtn')) $('authBtn').addEventListener('click', function () { signOut(); });
             if (POPUP) {
                 // Standalone wording: no Settings parent exists here.
                 const st = $('authStatus');
@@ -1068,10 +1057,29 @@
             syncControls();
             renderBrowse();
             updateFooter();
-            initGsi();
             queryParentConfig();
-        } catch (err) {
-            console.error('[Media] boot failed:', err);
         }
+        async function bootBroker() {
+            wireStaticOnce();
+            setAuthUI(!!getSess(), 'Connecting…');
+            try {
+                await loadBrokerConfig();
+            } catch (e) {
+                console.error('[Media] backend config failed:', e);
+                setAuthUI(false, 'Backend not configured — check Script Properties');
+                renderEmpty('Backend not configured.<br>Set CFG_CLIENT_ID / CFG_FOLDER_ID in Script Properties.');
+                return;
+            }
+            initGis();
+            if (getSess()) {
+                const email = getEmail();
+                setAuthUI(true, 'Signed in (restored)' + (email ? ' · ' + email : ''));
+                loadLibrary();
+            } else {
+                setAuthUI(false, 'Not signed in — ' + signinHint());
+            }
+        }
+        try { bootBroker(); }
+        catch (err) { console.error('[Media] boot failed:', err); }
     });
 })();

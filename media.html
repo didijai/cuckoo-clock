@@ -111,10 +111,12 @@
             padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap;
         }
         .auth-btn:hover { background: rgba(180, 83, 9, 0.75); }
-        /* Standalone popup tab (body.popup): auth lives here, pop-out is hidden. */
+        /* Standalone popup tab (body.popup): pop-out is hidden (already here). */
         body.popup #popoutBtn { display: none; }
-        #authBtn { display: none; }
-        body.popup #authBtn { display: inline-block; }
+        /* GIS Sign In buttons (header popup + inline docked): visibility is
+           owned by paintGisVisibility() in media.js (signed-out only). */
+        #g_id_signin, #g_id_signin_body { min-height: 0; }
+        #g_id_signin:empty, #g_id_signin_body:empty { display: none; }
 
         /* ----- Single-row toolbar: Viewer/Browse + Prev/Pause/Next -----
            One flex row (wraps only on extremely narrow widths) so the
@@ -355,14 +357,21 @@
                 <span class="media-header-subtitle">Photo · Audio · Video</span>
             </div>
             <div class="media-header-actions">
-                <!-- Popup tab owns its auth (no Settings parent there). -->
-                <button type="button" class="auth-btn" id="authBtn">Sign In</button>
+                <!-- Popup tab owns its auth (no Settings parent there).
+                     GIS button = Sign In; authBtn = Sign Out only (toggled in media.js). -->
+                <div id="g_id_signin"></div>
+                <button type="button" class="auth-btn" id="authBtn" style="display:none">Sign Out</button>
                 <!-- Docked panel: pop out into a standalone full tab. -->
                 <button type="button" class="icon-btn" id="popoutBtn" title="Open in New Tab">↗</button>
             </div>
         </div>
 
         <div class="media-body">
+            <!-- Owner-token broker sign-in (visible in BOTH popup + docked;
+                 the popup header above is hidden when docked, so this inline
+                 GIS button is the only click target there. Hidden once
+                 signed in — see paintGisVisibility() in media.js). -->
+            <div id="g_id_signin_body" style="display:flex;justify-content:center"></div>
             <!-- Single-row toolbar: Viewer/Browse + Prev/Pause/Next share one strip. -->
             <div class="media-toolbar" role="toolbar" aria-label="Gallery controls">
                 <div class="view-toggle" role="tablist" aria-label="Gallery view">

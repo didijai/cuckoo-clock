@@ -1,18 +1,19 @@
 /* ==========================================================================
    Media Panel — Google Drive photo/audio/video gallery with auto-rotate.
    Self-contained inside media.html (its own iframe), mirroring the Learn
-   module pattern. Drive Sign In/Out lives in the parent Settings panel
-   and drives this iframe via postMessage (`media-auth`); the parent also
-   pushes the rotation interval (`media-config`). This iframe reports its
-   auth/library state back (`media-auth-status`) so Settings can show it.
+   module pattern. Sign In/Out lives in the gallery panel itself (standard
+   GIS buttons); the docked outer header owns Sign Out next to pop-out.
+   The parent pushes the rotation interval (`media-config`) and mirrors
+   auth state read-only in Settings. This iframe reports its auth/library
+   state back (`media-auth-status`).
 
    Auth: Owner-token broker (proven in index-poc.html + Code.gs).
    - No CLIENT_ID / FOLDER_ID / OAuth scope in this repo. Both load from
      the Apps Script via action=config (public bootstrap).
-   - Sign In With Google (GIS ID, not OAuth token-client) sends a one-time
-     ID token to the Script (action=session). Script verifies aud/expiry/
-     email_verified + ALLOWLIST, returns a permanent opaque session stored
-     in localStorage (gallery_session + gallery_email).
+   - Standard GIS "Sign In with Google" button (renderButton). The
+     one-time ID token goes to the Script (action=session). Script verifies
+     aud/expiry/email_verified + ALLOWLIST, returns a permanent opaque
+     session stored in localStorage (gallery_session + gallery_email).
    - Script mints short folder-scoped SA access_tokens (action=token,
      memory only, never localStorage). Drive is called DIRECTLY with that
      SA token. On 401 the SA token is silently re-minted behind the
@@ -74,11 +75,11 @@
     const POPUP = !EMBEDDED;
     if (POPUP && document.body) document.body.classList.add('popup');
 
-    // Auth hint wording depends on who owns Sign In: the Settings parent
-    // when docked, the header GIS button when in popup mode.
+    // Auth hint wording depends on where the Sign In button is: the
+    // inline/popup custom button in both modes (no Settings auth).
     function signinHint() {
         return POPUP ? 'tap Sign In above to load media'
-                     : 'use Settings → Media to sign in';
+                     : 'tap Sign In in the gallery to load media';
     }
 
     let files = [];            // [{id,name,mimeType,kind,thumbnailLink}]
@@ -167,23 +168,25 @@
         } catch (e) {}
     }
 
-    // GIS button = Sign In, header authBtn = Sign Out only. Exactly one is
-    // visible at a time so there is never a dead "Sign In" that does nothing.
+    // Standard Google Sign In buttons (header popup + inline both modes)
+    // = Sign In; header authBtn = Sign Out only. The rendered button is
+    // required — prompt() alone is suppressed after sign-out/cooldown.
     function paintGisVisibility(signedIn) {
-        const gisBtns = [$('g_id_signin'), $('g_id_signin_body')].filter(Boolean);
+        const s1 = $('g_id_signin'), row = $('signinRow'), s2 = $('g_id_signin_body');
         const authBtn = $('authBtn');
-        gisBtns.forEach(function (el) { el.style.display = signedIn ? 'none' : ''; });
+        if (s1) s1.style.display = signedIn ? 'none' : '';
+        if (row) row.style.display = signedIn ? 'none' : 'flex';
+        if (s2) s2.style.display = signedIn ? 'none' : '';
         if (authBtn) {
             authBtn.style.display = signedIn ? '' : 'none';
             authBtn.textContent = 'Sign Out';
         }
     }
 
-    // Copy shown when signed out — points at Settings when docked,
-    // at the header button when in popup mode.
+    // Copy shown when signed out — auth lives in the gallery panel itself.
     function signedOutHint() {
         return POPUP ? 'Signed out. Tap Sign In above to reload.'
-                     : 'Signed out. Use Settings → Media → Sign In to reload.';
+                     : 'Signed out. Tap Sign In in the gallery to reload.';
     }
 
     async function signOut() {
@@ -237,8 +240,10 @@
                 callback: onGoogleCredential,
                 auto_select: true,
             });
-        } catch (e) { /* already initialized — continue to render */ }
-        [['g_id_signin', 'pill'], ['g_id_signin_body', 'outline']].forEach(function ([id]) {
+        } catch (e) { /* already initialized */ }
+        // Standard Google buttons (HEAD-proven options that render the full
+        // "Sign in with Google" text — no width/type overrides).
+        ['g_id_signin', 'g_id_signin_body'].forEach(function (id) {
             const host = $(id);
             if (!host) return;
             try {
@@ -247,23 +252,21 @@
             } catch (e) {}
         });
         paintGisVisibility(!!getSess());
+        // Silent restore for returning Google sessions; broker session covers
+        // everyone else (permanent, no click needed).
         try { google.accounts.id.prompt(); } catch (e) {}
     }
 
-    // Parent Settings "Sign In" (or header tap) when no session exists:
-    // session stays permanent, so this only fires One Tap / focuses GIS.
-    // When a session already exists it just (re)loads the library.
+    // Sign In entry (docked header button via postMessage, or taps):
+    // session stays permanent, so with a session this just reloads.
+    // Without one, direct the user to the real GIS button (prompt() is
+    // only a best-effort supplement — suppressed after sign-out/cooldown).
     function requestSignIn() {
         if (!broker.ready) { setAuthUI(false, 'Backend still loading… try again'); return; }
         if (getSess()) { loadLibrary(); return; }
         setAuthUI(false, 'Sign-in needed — ' + signinHint());
-        try {
-            if (window.google && google.accounts && google.accounts.id) {
-                google.accounts.id.prompt();
-            }
-        } catch (e) {}
-        // Docked header is hidden, so also surface the inline GIS button.
-        const inline = $('g_id_signin_body');
+        try { google.accounts.id.prompt(); } catch (e) {}
+        const inline = $('signinRow');
         if (inline) {
             try { inline.scrollIntoView({ block: 'nearest' }); } catch (e) {}
         }
@@ -898,7 +901,7 @@
             const s = document.createElement('div');
             s.className = 'browse-empty';
             s.innerHTML = POPUP ? 'Nothing here yet.<br>Tap Sign In above.'
-                                : 'Nothing here yet.<br>Sign in via Settings → Media.';
+                                : 'Nothing here yet.<br>Tap Sign In in the gallery.';
             grid.appendChild(s);
             return;
         }
@@ -1022,18 +1025,10 @@
             if ($('popoutBtn')) $('popoutBtn').addEventListener('click', function () {
                 try { window.open('media.html?popup=1', '_blank', 'noopener'); } catch (e) {}
             });
-            // Header auth button is Sign Out only — Sign In is the GIS button.
+            // Header auth button is Sign Out only — Sign In is the real
+            // GIS button (header popup + inline), always opening the chooser.
             if ($('authBtn')) $('authBtn').addEventListener('click', function () { signOut(); });
             if (POPUP) {
-                // Standalone wording: no Settings parent exists here.
-                const st = $('authStatus');
-                if (st && /Settings/.test(st.textContent || '')) {
-                    st.textContent = 'Not signed in — tap Sign In above';
-                }
-                const emptyLabel = document.querySelector('#stageEmpty span:last-child');
-                if (emptyLabel && /Settings/.test(emptyLabel.innerHTML || '')) {
-                    emptyLabel.innerHTML = 'Tap Sign In above<br>to load photos, audio &amp; video.';
-                }
                 const emptyTitle = document.querySelector('.media-header-subtitle');
                 if (emptyTitle) emptyTitle.textContent = 'Photo · Audio · Video · Full Tab';
             }

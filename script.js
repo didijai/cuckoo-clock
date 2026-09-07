@@ -324,10 +324,10 @@ const mediaToggleBtn = document.getElementById('mediaToggleBtn');
 const mediaOpenTabLink = document.getElementById('mediaOpenTabLink');
 const mediaRotateSlider = document.getElementById('mediaRotateSlider');
 const mediaRotateVal = document.getElementById('mediaRotateVal');
-// Drive auth buttons live in Settings; they command the gallery iframe
-// via postMessage (the iframe owns the Google OAuth flow).
-const mediaSignInBtn = document.getElementById('mediaSignInBtn');
-const mediaSignOutBtn = document.getElementById('mediaSignOutBtn');
+// Drive auth lives in the gallery panel itself (custom chalet buttons
+// driving the broker flow). Settings keeps a read-only status mirror;
+// the docked panel header owns the Sign Out button next to pop-out.
+const mediaPanelSignOutBtn = document.getElementById('mediaPanelSignOutBtn');
 const mediaAuthDot = document.getElementById('mediaAuthDot');
 const mediaAuthStatus = document.getElementById('mediaAuthStatus');
 // Unified TTS mode buttons (2x2 grid). Legacy `ttsToggle` / `ttsEngine*Btn`
@@ -970,14 +970,12 @@ function syncMediaAuthUI(signedIn, statusText) {
         mediaAuthDot.className = 'shrink-0 w-2 h-2 rounded-full ' +
             (signedIn ? 'bg-emerald-400' : 'bg-slate-500');
     }
-    if (mediaSignInBtn) mediaSignInBtn.disabled = !!signedIn;
-    if (mediaSignOutBtn) mediaSignOutBtn.disabled = !signedIn;
-    if (mediaSignInBtn) mediaSignInBtn.classList.toggle('opacity-40', !!signedIn);
-    if (mediaSignOutBtn) mediaSignOutBtn.classList.toggle('opacity-40', !signedIn);
+    // Docked panel header Sign Out (next to pop-out): visible only when signed in.
+    if (mediaPanelSignOutBtn) mediaPanelSignOutBtn.style.display = signedIn ? '' : 'none';
 }
 
-if (mediaSignInBtn) mediaSignInBtn.addEventListener('click', () => sendMediaAuth('signin'));
-if (mediaSignOutBtn) mediaSignOutBtn.addEventListener('click', () => sendMediaAuth('signout'));
+// Docked panel header owns Sign Out (Settings keeps a read-only mirror).
+if (mediaPanelSignOutBtn) mediaPanelSignOutBtn.addEventListener('click', () => sendMediaAuth('signout'));
 // Refresh the Settings auth row whenever the modal opens (iframe may
 // have signed in/out while Settings was closed).
 if (openSettingsBtn) openSettingsBtn.addEventListener('click', requestMediaAuthStatus);

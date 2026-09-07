@@ -20,15 +20,16 @@
      permanent session — no hidden iframe, no 3P cookies, no hourly expiry.
    - Sign out deletes the server session + local copy.
 
-   - Lists image + video + audio files in the folder (id/name/mimeType +
-     thumbnailLink). FULL file bytes are fetched on demand for the viewer
-     only (current item + neighbours, cached as object URLs). The Browse
-     grid NEVER downloads full files and NEVER fetch()es thumbnails
-     (lh3.googleusercontent.com rejects authorized CORS fetches): tiles
-     render plain <img src="thumbnailLink"> (signed URL, CORS-exempt,
-     =s400), attached lazily on scroll with an icon + onerror fallback.
-     Refresh re-lists the folder and reconciles the full-blob cache
-     (keeps blobs for files still present, drops the rest).
+    - Lists image + video + audio files in the folder (id/name/mimeType +
+     thumbnailLink/hasThumbnail/size/videoMediaMetadata). FULL file bytes
+     are fetched on demand for the viewer only (current item; photo/audio
+     neighbours preload, videos load on open). Cached as object URLs. The Browse grid NEVER downloads full files
+     and NEVER fetch()es thumbnails (lh3.googleusercontent.com rejects
+     authorized CORS fetches): tiles render plain <img src="thumbnailLink">
+     exactly as returned (native =s220, a few KB — the same frame the Drive
+     web UI shows), attached lazily on scroll with an icon + onerror
+     fallback. Refresh re-lists the folder and reconciles the full-blob
+     cache (keeps blobs for files still present, drops the rest).
    - Browse suspends the slideshow (timer cleared, hidden media paused);
      returning to Viewer resumes the current item.
     - Auto-rotate: images advance every `rotateSec` (default 30s, set by the
@@ -82,7 +83,7 @@
                      : 'tap Sign In in the gallery to load media';
     }
 
-    let files = [];            // [{id,name,mimeType,kind,thumbnailLink}]
+    let files = [];            // [{id,name,mimeType,kind,thumbnailLink,hasThumb,size,durationMs}]
     let objectUrls = {};       // fileId -> FULL blob object URL (viewer cache)
     let thumbObserver = null;  // IntersectionObserver: only load visible tiles
     let lastSyncText = '';     // last successful folder re-list time
@@ -353,7 +354,7 @@
                 "(mimeType contains 'image/' or mimeType contains 'video/' or mimeType contains 'audio/') and " +
                 'trashed = false';
             let url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) +
-                '&fields=files(id,name,mimeType,thumbnailLink),nextPageToken&orderBy=name&pageSize=100';
+                '&fields=files(id,name,mimeType,thumbnailLink,hasThumbnail,size,videoMediaMetadata),nextPageToken&orderBy=name&pageSize=100';
             const all = [];
             let pageToken = null;
             do {
@@ -363,10 +364,27 @@
                 (data.files || []).forEach(function (f) {
                     const kind = kindOf(f.mimeType);
                     if (kind === 'other') return;
-                    all.push({ id: f.id, name: f.name || 'Untitled', mimeType: f.mimeType, kind: kind, thumbnailLink: f.thumbnailLink || null });
+                    const vm = f.videoMediaMetadata || {};
+                    all.push({ id: f.id, name: f.name || 'Untitled', mimeType: f.mimeType, kind: kind, thumbnailLink: f.thumbnailLink || null,
+                        hasThumb: !!f.hasThumbnail, size: Number(f.size) || 0,
+                        durationMs: Number(vm.durationMillis) || 0 });
                 });
                 pageToken = data.nextPageToken || null;
             } while (pageToken);
+
+            // Diagnostics: per-kind thumbnail coverage straight from the API.
+            // If Drive's web UI shows a video frame but hasThumb/link is false
+            // here, the API isn't exposing it (vs. a rendering problem).
+            try {
+                const cov = {};
+                all.forEach(function (f) {
+                    const c = cov[f.kind] || (cov[f.kind] = { n: 0, link: 0, flag: 0 });
+                    c.n++;
+                    if (f.thumbnailLink) c.link++;
+                    if (f.hasThumb) c.flag++;
+                });
+                console.info('[Media] thumbnail coverage:', JSON.stringify(cov));
+            } catch (e) {}
 
             // Refresh path: keep blobs for files still present instead of
             // wiping the whole cache (first load starts empty anyway).
@@ -492,14 +510,18 @@
         const next = files[(index + 1) % files.length];
         const prev = files[(index - 1 + files.length) % files.length];
         [next, prev].forEach(function (f) {
-            if (f && !objectUrls[f.id]) {
-                // Viewer neighbour preload (full file, only 2 at a time).
-                // Paint its grid tile in place when it lands — no grid
-                // re-render, so Browse never loses its scroll position.
-                blobUrlFor(f).catch(function () {}).then(function (u) {
-                    if (u) paintThumb(f.id);
-                });
-            }
+            // Photos + audio are small: preload for instant advance. Videos
+            // are NOT preloaded — a full alt=media fetch can be GBs, chokes
+            // the connection (starving thumbnail <img> requests into icon
+            // fallbacks), and feeds nothing the grid can use. Videos load on
+            // demand when opened in the viewer (Loading… state).
+            if (!f || f.kind === 'video' || objectUrls[f.id]) return;
+            // Viewer neighbour preload (full file, max 2 at a time).
+            // Paint its grid tile in place when it lands — no grid
+            // re-render, so Browse never loses its scroll position.
+            blobUrlFor(f).catch(function () {}).then(function (u) {
+                if (u) paintThumb(f.id);
+            });
         });
     }
 
@@ -815,11 +837,13 @@
        margin) with loading="lazy", so a 500-file folder doesn't fire 500
        requests at once. Audio has no Drive thumbnail -> icon tile. */
     function thumbSrc(file) {
-        // Drive returns e.g. "...=s220"; ask for a grid-friendly width.
+        // Use Drive's thumbnailLink exactly as returned (native =s220, a few
+        // KB — the same frame the Drive web UI shows, zero file download).
+        // No size rewrite: mangling the URL params is what can turn a valid
+        // video thumbnail into a broken image (icon fallback).
         try {
             const link = file && file.thumbnailLink;
             if (typeof link !== 'string' || !link) return null;
-            if (/=s\d+/.test(link)) return link.replace(/=s\d+[^&]*/, '=s400');
             return link;
         } catch (e) { return file && file.thumbnailLink; }
     }
@@ -846,9 +870,13 @@
 
     // Upgrade a single tile to the cached FULL blob (e.g. after the viewer
     // or neighbour preload downloaded it) without re-rendering the grid.
+    // PHOTOS ONLY: a video/audio blob is unrenderable in <img> — swapping
+    // it in fires onerror and destroys the working thumbnailLink tile.
     function paintThumb(fileId) {
         const grid = $('browseGrid');
         if (!grid || !objectUrls[fileId]) return;
+        const f = files.find(function (x) { return x.id === fileId; });
+        if (!f || f.kind !== 'photo') return;
         const cell = grid.querySelector('[data-file-id="' + fileId + '"] .browse-thumb');
         if (!cell) return;
         const img = cell.querySelector('img');
@@ -869,7 +897,10 @@
                 cell.setAttribute('data-thumb-loaded', '1');
                 const holder = cell.querySelector('.browse-thumb');
                 if (!holder || holder.querySelector('img')) return;
-                const full = objectUrls[file.id];
+                // Photo blobs render in <img>; video/audio blobs don't (they
+                // would onerror and kill the thumbnailLink tile), so tiles
+                // for those kinds always use thumbnailLink/icon.
+                const full = (file.kind === 'photo') ? objectUrls[file.id] : null;
                 const src = full || thumbSrc(file);
                 if (!src) return;
                 holder.textContent = '';
@@ -910,12 +941,16 @@
             const cell = document.createElement('button');
             cell.type = 'button';
             cell.className = 'browse-cell' + (i === currentIndex ? ' active' : '');
-            cell.title = f.name;
+            cell.title = f.kind === 'video' && f.durationMs > 0
+                ? f.name + ' (' + Math.round(f.durationMs / 1000) + 's)'
+                : f.name;
             cell.setAttribute('data-file-id', f.id);
 
             const thumb = document.createElement('span');
             thumb.className = 'browse-thumb' + (f.kind === 'video' ? ' video' : f.kind === 'audio' ? ' audio' : '');
-            const full = objectUrls[f.id];
+            // Only photo blobs are <img>-renderable; video/audio blobs would
+            // onerror into the icon fallback (see paintThumb).
+            const full = (f.kind === 'photo') ? objectUrls[f.id] : null;
             const link = thumbSrc(f);
             if (full) {
                 // Already have the full file (viewed/preloaded): best quality.

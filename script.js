@@ -321,7 +321,6 @@ const mediaPanel = document.getElementById('mediaPanel');
 const mediaFrame = document.getElementById('mediaFrame');
 const mediaPanelToggle = document.getElementById('mediaPanelToggle');
 const mediaToggleBtn = document.getElementById('mediaToggleBtn');
-const mediaReloadBtn = document.getElementById('mediaReloadBtn');
 const mediaOpenTabLink = document.getElementById('mediaOpenTabLink');
 const mediaRotateSlider = document.getElementById('mediaRotateSlider');
 const mediaRotateVal = document.getElementById('mediaRotateVal');
@@ -1012,19 +1011,6 @@ if (mediaToggleBtn) mediaToggleBtn.addEventListener('click', () => {
 // Settings toggle.
 if (mediaPanelToggle) mediaPanelToggle.addEventListener('change', (e) => {
     setMediaPanelEnabled(e.target.checked);
-});
-
-// Reload the gallery iframe on demand (mirrors the bus panel reload:
-// re-assigning src forces a full reload; the cached Drive token keeps
-// the session so no re-sign-in is needed).
-if (mediaReloadBtn) mediaReloadBtn.addEventListener('click', () => {
-    try {
-        const src = mediaFrame.getAttribute('src') || 'media.html';
-        // Re-assigning src forces a full reload, so `load` re-fires
-        // and the interval + auth status are re-pushed (see the
-        // mediaFrame `load` listener above).
-        mediaFrame.src = src;
-    } catch (err) {}
 });
 
 // Rotation interval slider: live label + debounced persist + push to iframe.

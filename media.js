@@ -723,23 +723,23 @@
     function updateFooter(overrideNote) {
         const dot = $('rotateDot'), note = $('rotateNote');
         if (!files.length) {
-            if (dot) dot.classList.add('paused');
+            if (dot) { dot.classList.add('paused'); dot.style.display = ''; }
             if (note) note.textContent = 'Sign in to load media';
             return;
         }
         // While browsing, the slideshow is suspended by design (see
-        // setView) — say so instead of showing a stale countdown.
+        // setView) — the bottom-right note shows the last sync time instead.
         if (viewMode === 'browse' && !overrideNote) {
-            if (dot) dot.classList.add('paused');
-            if (note) note.textContent = 'Browsing — slideshow paused';
+            if (dot) dot.style.display = 'none';
+            if (note) note.textContent = lastSyncText ? 'Synced ' + lastSyncText : 'Browsing';
             return;
         }
         if (overrideNote) {
-            if (dot) dot.classList.remove('paused');
+            if (dot) { dot.classList.remove('paused'); dot.style.display = ''; }
             if (note) note.textContent = overrideNote;
             return;
         }
-        if (dot) dot.classList.toggle('paused', !playing);
+        if (dot) { dot.classList.toggle('paused', !playing); dot.style.display = ''; }
         if (note) {
             if (!playing) note.textContent = 'Slideshow paused';
             else if (waitingAfterMedia) note.textContent = 'Next after ' + rotateSec + 's pause';
@@ -920,13 +920,7 @@
         if (!grid) return;
         if (thumbObserver) { try { thumbObserver.disconnect(); } catch (e) {} thumbObserver = null; }
         grid.innerHTML = '';
-        if (count) {
-            let label = files.length
-                ? files.length + ' item' + (files.length === 1 ? '' : 's') + ' · tap to view'
-                : 'Browse';
-            if (lastSyncText) label += ' · synced ' + lastSyncText;
-            count.textContent = label;
-        }
+        if (count) count.textContent = '';
         syncRefreshBtn();
         if (!files.length) {
             const s = document.createElement('div');

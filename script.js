@@ -324,12 +324,9 @@ const mediaToggleBtn = document.getElementById('mediaToggleBtn');
 const mediaOpenTabLink = document.getElementById('mediaOpenTabLink');
 const mediaRotateSlider = document.getElementById('mediaRotateSlider');
 const mediaRotateVal = document.getElementById('mediaRotateVal');
-// Drive auth lives in the gallery panel itself (custom chalet buttons
-// driving the broker flow). Settings keeps a read-only status mirror;
-// the docked panel header owns the Sign Out button next to pop-out.
+// Auth state mirror: the gallery iframe owns sign in/out; the parent only
+// toggles the docked panel header Sign Out button next to pop-out.
 const mediaPanelSignOutBtn = document.getElementById('mediaPanelSignOutBtn');
-const mediaAuthDot = document.getElementById('mediaAuthDot');
-const mediaAuthStatus = document.getElementById('mediaAuthStatus');
 // Unified TTS mode buttons (2x2 grid). Legacy `ttsToggle` / `ttsEngine*Btn`
 // IDs no longer exist in the markup; lookups are guarded so old cached
 // pages don't throw.
@@ -961,24 +958,13 @@ function requestMediaAuthStatus() {
     } catch (err) {}
 }
 
-function syncMediaAuthUI(signedIn, statusText) {
-    if (mediaAuthStatus) {
-        mediaAuthStatus.textContent = 'Drive: ' + (statusText || (signedIn ? 'signed in' : 'not signed in'));
-        mediaAuthStatus.title = mediaAuthStatus.textContent;
-    }
-    if (mediaAuthDot) {
-        mediaAuthDot.className = 'shrink-0 w-2 h-2 rounded-full ' +
-            (signedIn ? 'bg-emerald-400' : 'bg-slate-500');
-    }
+function syncMediaAuthUI(signedIn) {
     // Docked panel header Sign Out (next to pop-out): visible only when signed in.
     if (mediaPanelSignOutBtn) mediaPanelSignOutBtn.style.display = signedIn ? '' : 'none';
 }
 
-// Docked panel header owns Sign Out (Settings keeps a read-only mirror).
+// Docked panel header owns Sign Out (auth itself lives in the gallery iframe).
 if (mediaPanelSignOutBtn) mediaPanelSignOutBtn.addEventListener('click', () => sendMediaAuth('signout'));
-// Refresh the Settings auth row whenever the modal opens (iframe may
-// have signed in/out while Settings was closed).
-if (openSettingsBtn) openSettingsBtn.addEventListener('click', requestMediaAuthStatus);
 
 // Reflect the Media panel's ON/OFF state on the header shortcut button
 // (bright when open, dim when closed) — same pattern as Learn.

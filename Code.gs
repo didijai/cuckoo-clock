@@ -228,8 +228,16 @@ function adminListSessions() {
   Logger.log('total sessions: ' + n);
 }
 
-function adminRevokeEmail(email) {
-  email = String(email || '').toLowerCase();
+// Revoke all sessions for one address. Runnable from the editor Run
+// button (no parameters): set Script Property ADMIN_TARGET_EMAIL first.
+function adminRevokeTargetEmail() {
+  const raw = PropertiesService.getScriptProperties()
+    .getProperty('ADMIN_TARGET_EMAIL') || '';
+  if (!raw) {
+    Logger.log('Set Script Property ADMIN_TARGET_EMAIL first.');
+    return;
+  }
+  const email = String(raw).toLowerCase();
   const store = PropertiesService.getScriptProperties();
   const props = store.getProperties();
   let n = 0;

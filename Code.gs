@@ -130,16 +130,35 @@ function actionLogout(p) {
   return out(p, { ok: true });
 }
 
+// How long one login lasts: 90 days from sign-in.
+// The browser reuses the same session on every visit, so active users
+// are unaffected. This only auto-expires sessions from browsers you
+// stopped using. Each browser/PC has its own session.
+const SESSION_TTL_DAYS = 90;
+
 function checkSession(token) {
   if (!token) return null;
-  const raw = PropertiesService.getScriptProperties().getProperty('sess_' + token);
+  const store = PropertiesService.getScriptProperties();
+  const raw = store.getProperty('sess_' + token);
   if (!raw) return null;
-  try {
-    const o = JSON.parse(raw);
-    const allowed = getCfg().allowlist.map((a) => String(a).toLowerCase());
-    if (allowed.indexOf(String(o.email || '').toLowerCase()) < 0) return null;
-    return o.email;
-  } catch (err) { return null; }
+  let o;
+  try { o = JSON.parse(raw); }
+  catch (err) { store.deleteProperty('sess_' + token); return null; }
+  const allowed = getCfg().allowlist.map((a) => String(a).toLowerCase());
+  if (allowed.indexOf(String(o.email || '').toLowerCase()) < 0) {
+    store.deleteProperty('sess_' + token);
+    return null;
+  }
+  // Lazy TTL: expired sessions are revoked on touch and never served.
+  if (o.created) {
+    const created = new Date(o.created).getTime();
+    const now = Date.now();
+    if (now - created > SESSION_TTL_DAYS * 24 * 60 * 60 * 1000) {
+      store.deleteProperty('sess_' + token);
+      return null;
+    }
+  }
+  return o.email;
 }
 
 function getSaConfig() {
@@ -232,6 +251,26 @@ function adminRevokeAll() {
     if (k.indexOf('sess_') === 0) { store.deleteProperty(k); n++; }
   }
   Logger.log('revoked all ' + n + ' session(s)');
+}
+
+// Sweep sessions past SESSION_TTL_DAYS. Run manually (Tools > Script editor
+// Run) or on a time trigger; the lazy TTL in checkSession already purges on
+// touch, so this is just housekeeping for long-unvisited entries.
+function adminSweepExpired() {
+  const store = PropertiesService.getScriptProperties();
+  const props = store.getProperties();
+  const cutoff = Date.now() - SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
+  let n = 0;
+  for (const k in props) {
+    if (k.indexOf('sess_') !== 0) continue;
+    let o;
+    try { o = JSON.parse(props[k]); }
+    catch (err) { store.deleteProperty(k); n++; continue; }
+    if (!o.created || new Date(o.created).getTime() < cutoff) {
+      store.deleteProperty(k); n++;
+    }
+  }
+  Logger.log('swept ' + n + ' expired session(s)');
 }
 
 function out(p, obj) {

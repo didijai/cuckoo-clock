@@ -212,7 +212,32 @@
     }
 
     // GIS ID credential -> permanent broker session (POC flow).
+    // REUSE-FIRST: GIS auto_select fires on EVERY page load, even when we
+    // already hold a valid sess in localStorage. Minting unconditionally
+    // here is what leaks one orphaned sess_* per reload. If we already
+    // have one, validate it (one cheap action=token) and keep it.
     async function onGoogleCredential(resp) {
+        const existing = getSess();
+        if (existing) {
+            try {
+                const chk = await scriptApi({ action: 'token', session: existing });
+                if (!chk.error) {
+                    if (chk.access_token) saToken = chk.access_token;
+                    setAuthUI(true, 'Signed in' + (getEmail() ? ' as ' + getEmail() : ' (restored)'));
+                    loadLibrary();
+                    return;
+                }
+                // Old session dead (revoked/expired) -> fall through and
+                // mint a fresh one from this credential.
+                if (chk.error === 'unauthorized') clearSessionLocal();
+            } catch (e) {
+                // Network hiccup validating: keep the old sess and try
+                // loading; driveFetch will re-mint behind it if needed.
+                setAuthUI(true, 'Signed in (restored)' + (getEmail() ? ' · ' + getEmail() : ''));
+                loadLibrary();
+                return;
+            }
+        }
         setAuthUI(false, 'Verifying …');
         try {
             const data = await scriptApi({ action: 'session', id_token: resp.credential });
@@ -253,9 +278,16 @@
             } catch (e) {}
         });
         paintGisVisibility(!!getSess());
+        // Reuse-first: with a sess in localStorage there is nothing to
+        // restore via Google — bootBroker() already loadLibrary()s behind
+        // it. Calling prompt() here would fire onGoogleCredential via
+        // auto_select and mint a duplicate sess_* for no reason. Only
+        // prompt when we actually lack a session.
         // Silent restore for returning Google sessions; broker session covers
         // everyone else (permanent, no click needed).
-        try { google.accounts.id.prompt(); } catch (e) {}
+        if (!getSess()) {
+            try { google.accounts.id.prompt(); } catch (e) {}
+        }
     }
 
     // Sign In entry (docked header button via postMessage, or taps):

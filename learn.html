@@ -8,7 +8,8 @@
     <title>Learn Panel</title>
 
     <!-- The Learn module is kept fully self-contained: it owns its own
-         layout, selection UI and question logic (see learn.js). The parent
+         layout, selection UI and question logic (see learn/ folder:
+         core.js + math-level1.js + english-level1.js + ui.js). The parent
          clock page only shows/hides this iframe and reserves screen space.
          Using the same fonts/CDN as the parent so it looks native. -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600;700&display=swap"
@@ -180,12 +181,25 @@
             white-space: nowrap;
         }
 
+        /* Story mode (English word problems): wrapped, smaller, readable. */
+        .question-text.story {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 19px;
+            line-height: 1.55;
+            white-space: normal;
+            color: #fef3c7;
+            text-shadow: none;
+        }
+
         .answer-area {
             min-height: 40px;
             margin-top: 10px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 4px;
         }
 
         .answer-text {
@@ -193,6 +207,13 @@
             font-weight: 900;
             color: #4ade80;
             text-shadow: 0 0 16px rgba(74, 222, 128, 0.4);
+        }
+
+        .answer-sentence {
+            font-size: 14px;
+            font-weight: 600;
+            color: #bbf7d0;
+            line-height: 1.4;
         }
 
         .answer-placeholder {
@@ -293,7 +314,7 @@
             </div>
             <div class="learn-header-text">
                 <span class="learn-header-title">Learn Panel</span>
-                <span class="learn-header-subtitle">Math · Level 1</span>
+                <span class="learn-header-subtitle" id="learnSubtitle">Math · Level 1</span>
             </div>
         </div>
 
@@ -311,13 +332,14 @@
                 <div class="learn-chips" id="categoryChips"></div>
             </div>
 
-            <!-- The active question (kid-friendly addition) -->
-            <div class="question-card">
+            <!-- The active question (Math sums or English word problems) -->
+            <div class="question-card" title="Tap to hear the question again">
                 <div class="question-prompt" id="questionPrompt">What is the answer?</div>
                 <div class="question-text" id="questionText">…</div>
                 <div class="answer-area" id="answerArea">
                     <span class="answer-placeholder" id="answerPlaceholder">Tap "Reveal Answer"</span>
                     <span class="answer-text" id="answerText" hidden></span>
+                    <span class="answer-sentence" id="answerSentence" hidden></span>
                 </div>
             </div>
 
@@ -340,8 +362,14 @@
     <!-- Speech: self-contained TTS (local engine w/ Google fallback) -->
     <script src="tts.js"></script>
 
-    <!-- Separate logic file: question rules + localStorage 1-hour cache -->
-    <script src="learn.js"></script>
+    <!-- Modular Learn logic (order matters: core first, ui last).
+         core.js: registry + 1-hour cache + question lifecycle.
+         math-level1.js / english-level1.js: subject generators.
+         ui.js: rendering + TTS wiring + controls + boot. -->
+    <script src="learn/core.js"></script>
+    <script src="learn/math-level1.js"></script>
+    <script src="learn/english-level1.js"></script>
+    <script src="learn/ui.js"></script>
 </body>
 
 </html>

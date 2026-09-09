@@ -329,6 +329,25 @@
         }
     }
 
+    // Story answers: emphasize the key phrase inline ("Ben has 3 bananas
+    // now." with "3 bananas" big). HTML-escaped; first occurrence only;
+    // falls back to plain text when the key isn't found.
+    function emphasizeKey(sentence, key) {
+        const esc = (s) => String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        const s = String(sentence || '');
+        const k = String(key || '');
+        if (!s) return '';
+        if (!k) return esc(s);
+        const i = s.indexOf(k);
+        if (i < 0) return esc(s);
+        return esc(s.slice(0, i)) +
+            `<span class="answer-key">${esc(k)}</span>` +
+            esc(s.slice(i + k.length));
+    }
+
     function wireActions() {
         const revealBtn = document.getElementById('revealBtn');
         const newBtn = document.getElementById('newQuestionBtn');
@@ -399,14 +418,27 @@
                 const answerText = document.getElementById('answerText');
                 const answerSentence = document.getElementById('answerSentence');
                 const placeholder = document.getElementById('answerPlaceholder');
-                // Print the question's answer: the short answer is always
-                // shown; story questions additionally show the full answer
-                // sentence (the question itself stays visible on the card).
-                if (answerText) answerText.hidden = false;
-                if (answerSentence) {
-                    const hasSentence = !!(q && q.answerSentence);
-                    answerSentence.hidden = !hasSentence;
-                    if (hasSentence) answerSentence.style.display = '';
+                // Story questions: single display — the full sentence with
+                // the key phrase (q.answer, always a substring of the
+                // sentence) emphasized inline. No separate numeral, so the
+                // answer is shown once, not repeated.
+                if (q && q.display === 'story' && q.answerSentence) {
+                    if (answerText) answerText.hidden = true;
+                    if (answerSentence) {
+                        answerSentence.innerHTML = emphasizeKey(q.answerSentence, q.answer);
+                        answerSentence.hidden = false;
+                        answerSentence.style.display = '';
+                    }
+                } else {
+                    // Print the question's answer: the short answer is always
+                    // shown; story questions additionally show the full answer
+                    // sentence (the question itself stays visible on the card).
+                    if (answerText) answerText.hidden = false;
+                    if (answerSentence) {
+                        const hasSentence = !!(q && q.answerSentence);
+                        answerSentence.hidden = !hasSentence;
+                        if (hasSentence) answerSentence.style.display = '';
+                    }
                 }
                 if (placeholder) placeholder.hidden = true;
                 speakAnswer(); // reveal + read the answer out loud

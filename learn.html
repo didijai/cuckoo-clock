@@ -210,10 +210,21 @@
         }
 
         .answer-sentence {
-            font-size: 14px;
+            /* Surroundings match the story question size. */
+            font-size: 19px;
             font-weight: 600;
             color: #bbf7d0;
             line-height: 1.4;
+        }
+
+        /* Story answer emphasis: the key phrase ("3 bananas") uses the old
+           standalone numeral size — shown once, never repeated. */
+        .answer-key {
+            font-size: 40px;
+            font-weight: 900;
+            color: #4ade80;
+            text-shadow: 0 0 16px rgba(74, 222, 128, 0.4);
+            white-space: nowrap;
         }
 
         .answer-placeholder {
@@ -747,6 +758,14 @@
         }
 
         body.popup .answer-text {
+            font-size: 72px;
+        }
+
+        body.popup .answer-sentence {
+            font-size: 23px;
+        }
+
+        body.popup .answer-key {
             font-size: 72px;
         }
 

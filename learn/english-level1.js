@@ -34,7 +34,7 @@
     }
 
     // Kid-friendly cast (short, TTS-friendly names).
-    const KIDS = ['Ben', 'Mia', 'Sam', 'Lily', 'Tom', 'Anna'];
+    const KIDS = ['Ben', 'Mary', 'Sam', 'Lily', 'Tom', 'Anna'];
     const GIVERS = ['Dad', 'Mum', 'Grandma', 'Teacher', 'Sister'];
     const FRIENDS = ['Lucy', 'Jack', 'Emma', 'Leo', 'Nina'];
 
@@ -85,7 +85,7 @@
                 answerSentence: `${ctx.name} has ${count(total, ctx.item)}.`
             };
         },
-        // A2: Mia sees 3 balls on the table. She puts 2 more balls there…
+        // A2: Mary sees 3 balls on the table. She puts 2 more balls there…
         (a, b, ctx) => {
             const total = a + b;
             const text =
@@ -161,7 +161,7 @@
                 answerSentence: `${ctx.name} has ${count(total, ctx.food)} now.`
             };
         },
-        // S2: Mia has 4 candies. Mia gives 1 candy to Jack. How many … left?
+        // S2: Mary has 4 candies. Mary gives 1 candy to Jack. How many … left?
         (a, b, ctx) => {
             const total = a - b;
             const text =

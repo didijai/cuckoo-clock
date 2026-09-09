@@ -601,6 +601,20 @@
             padding: 14px 28px;
         }
 
+        /* Pickers share one row in popup (labels stay above their chips);
+           wraps on narrow windows. Docked mode keeps them stacked. */
+        body.popup .learn-pickrow {
+            display: flex;
+            gap: 28px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        body.popup .learn-pick {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
         body.popup .question-card {
             padding: 30px 28px;
         }
@@ -737,16 +751,20 @@
 
         <div class="learn-body">
 
-            <!-- Learning type selection (panel-side). More types coming soon. -->
-            <div>
-                <div class="learn-label">Learning Type</div>
-                <div class="learn-chips" id="typeChips"></div>
-            </div>
+            <!-- Learning type + category selection. Popup mode lays the
+                 two blocks side by side in one row (see .learn-pickrow);
+                 docked mode keeps them stacked. More types coming soon. -->
+            <div class="learn-pickrow">
+                <div class="learn-pick">
+                    <div class="learn-label">Learning Type</div>
+                    <div class="learn-chips" id="typeChips"></div>
+                </div>
 
-            <!-- Category selection (panel-side). More categories coming soon. -->
-            <div>
-                <div class="learn-label">Category</div>
-                <div class="learn-chips" id="categoryChips"></div>
+                <!-- Category selection (panel-side). More categories coming soon. -->
+                <div class="learn-pick">
+                    <div class="learn-label">Category</div>
+                    <div class="learn-chips" id="categoryChips"></div>
+                </div>
             </div>
 
             <!-- The active question (Math sums or English word problems) -->

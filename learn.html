@@ -298,6 +298,353 @@
             background: #f59e0b;
             box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
         }
+
+        /* ----- Math answer animation stage (preschool stepper) -----
+           Group A = blue ring, group B = orange ring, total = green.
+           All motion is transform/opacity only (cheap, no layout churn). */
+        .anim-stage {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            padding: 6px 2px 2px;
+        }
+
+        .anim-stage[hidden] {
+            display: none;
+        }
+
+        .anim-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .anim-glabel {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+
+        .anim-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            align-items: center;
+            max-width: 100%;
+        }
+
+        /* One ten being composed: 10 small in a dashed box. */
+        .anim-ten {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            justify-content: center;
+            align-items: center;
+            max-width: 150px;
+            padding: 6px;
+            border: 1.5px dashed rgba(148, 163, 184, 0.5);
+            border-radius: 12px;
+            transition: transform 0.7s ease-in, opacity 0.7s ease-in;
+        }
+
+        .anim-ten .anim-item {
+            font-size: 22px;
+        }
+
+        /* Merge beat: the box squeezes into a glow ring, then 1 big pops. */
+        .anim-ten.merging {
+            transform: scale(0.15);
+            opacity: 0;
+            border-color: #fcd34d;
+            box-shadow: 0 0 22px rgba(252, 211, 77, 0.8);
+        }
+
+        .anim-ten.merging-quick {
+            transform: scale(0.15);
+            opacity: 0;
+            border-color: #fcd34d;
+            box-shadow: 0 0 22px rgba(252, 211, 77, 0.8);
+            transition-duration: 0.32s;
+        }
+
+        .anim-item {
+            display: inline-flex;
+            font-size: 40px;
+            line-height: 1;
+            transform: scale(0);
+            opacity: 0;
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+            position: relative;
+        }
+
+        .anim-item.in {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .anim-item.ga {
+            filter: drop-shadow(0 0 6px rgba(96, 165, 250, 0.55));
+        }
+
+        .anim-item.gb {
+            filter: drop-shadow(0 0 6px rgba(251, 146, 60, 0.55));
+        }
+
+        /* Takeaway: circled, then flies off grey. */
+        .anim-item.doomed {
+            outline: 3px solid #f87171;
+            outline-offset: 2px;
+            border-radius: 50%;
+            animation: anim-wiggle 0.5s ease-in-out 2;
+        }
+
+        .anim-item.gone {
+            transform: translateY(-34px) scale(0.3);
+            opacity: 0;
+            filter: grayscale(1);
+        }
+
+        .anim-big {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            transform: scale(0);
+            opacity: 0;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s;
+        }
+
+        .anim-big.in {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .anim-big.ga {
+            background: rgba(37, 99, 235, 0.25);
+            border: 3px solid #60a5fa;
+            box-shadow: 0 0 16px rgba(96, 165, 250, 0.5);
+        }
+
+        .anim-big.gb {
+            background: rgba(194, 65, 12, 0.3);
+            border: 3px solid #fb923c;
+            box-shadow: 0 0 16px rgba(251, 146, 60, 0.5);
+        }
+
+        .anim-big-e {
+            font-size: 52px;
+            line-height: 1;
+        }
+
+        .anim-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 6px;
+            border-radius: 9999px;
+            background: #fcd34d;
+            color: #1c1917;
+            font-size: 14px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .anim-minibadge {
+            position: absolute;
+            bottom: -6px;
+            right: -4px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 4px;
+            border-radius: 9999px;
+            background: rgba(252, 211, 77, 0.95);
+            color: #1c1917;
+            font-size: 11px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: scale(0);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .anim-minibadge.in {
+            transform: scale(1);
+        }
+
+        /* Finale: everything left on stage cheers. */
+        .anim-stage.finale .cheer {
+            animation: anim-cheer 0.55s ease-in-out 2;
+        }
+
+        @keyframes anim-cheer {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50% { transform: scale(1.18) translateY(-8px); }
+        }
+
+        @keyframes anim-wiggle {
+            0%, 100% { transform: scale(1) rotate(0); }
+            25% { transform: scale(1.1) rotate(-8deg); }
+            75% { transform: scale(1.1) rotate(8deg); }
+        }
+
+        /* Caption: color-matched breakdown, e.g. 20 + 7 = 27. */
+        .anim-caption {
+            font-size: 20px;
+            font-weight: 800;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .anim-caption[hidden] {
+            display: none;
+        }
+
+        .cap-n {
+            padding: 2px 10px;
+            border-radius: 10px;
+        }
+
+        .cap-a {
+            background: rgba(37, 99, 235, 0.3);
+            color: #bfdbfe;
+        }
+
+        .cap-b {
+            background: rgba(194, 65, 12, 0.35);
+            color: #fed7aa;
+        }
+
+        .cap-total {
+            background: rgba(22, 101, 52, 0.5);
+            color: #bbf7d0;
+            font-size: 24px;
+        }
+
+        .cap-op {
+            color: #94a3b8;
+            font-weight: 700;
+        }
+
+        .cap-hint {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #fcd34d;
+            border: 1px dashed rgba(252, 211, 77, 0.6);
+            border-radius: 9999px;
+            padding: 3px 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .anim-item, .anim-big, .anim-ten {
+                transition-duration: 0.01ms;
+            }
+            .anim-stage.finale .cheer, .anim-item.doomed {
+                animation: none;
+            }
+        }
+
+        /* ----- Popup (full-tab) mode: room to breathe -----
+           Centered column, larger question + stage so the animation is
+           the hero instead of squeezed beside the clock. */
+
+        /* Docked (framed beside the clock): the outer panel header in
+           index.html owns the title, so the inner header hides — one
+           title bar total, same as the Media panel. The top-level popup
+           keeps its own header. */
+        body:not(.popup) .learn-header {
+            display: none;
+        }
+        body.popup .learn-body {
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 22px 28px;
+            gap: 18px;
+        }
+
+        body.popup .learn-header {
+            padding: 14px 28px;
+        }
+
+        body.popup .question-card {
+            padding: 30px 28px;
+        }
+
+        body.popup .question-text {
+            font-size: 76px;
+        }
+
+        body.popup .question-text.story {
+            font-size: 23px;
+        }
+
+        body.popup .answer-text {
+            font-size: 60px;
+        }
+
+        body.popup .anim-stage {
+            gap: 16px;
+            padding-top: 10px;
+        }
+
+        /* Row capacity (popup card interior ≈ 608px):
+           5 bigs:   5 × 112 + 4 × 6 = 584  -> one row of 5, wraps 5+4 for 9
+           10 small: 10 × 52 + 9 × 6 = 574  -> always a single row */
+        body.popup .anim-item {
+            font-size: 52px;
+        }
+
+        body.popup .anim-ten {
+            max-width: 210px;
+            padding: 10px;
+        }
+
+        body.popup .anim-ten .anim-item {
+            font-size: 30px;
+        }
+
+        body.popup .anim-big {
+            width: 112px;
+            height: 112px;
+        }
+
+        body.popup .anim-big-e {
+            font-size: 68px;
+        }
+
+        body.popup .anim-caption {
+            font-size: 26px;
+        }
+
+        body.popup .cap-total {
+            font-size: 32px;
+        }
+
+        body.popup .learn-action {
+            padding: 14px 10px;
+            font-size: 15px;
+        }
     </style>
 </head>
 
@@ -340,6 +687,10 @@
                     <span class="answer-placeholder" id="answerPlaceholder">Tap "Reveal Answer"</span>
                     <span class="answer-text" id="answerText" hidden></span>
                     <span class="answer-sentence" id="answerSentence" hidden></span>
+                    <!-- Math answer animation stage (3-tap stepper; hidden
+                         until the first Reveal tap on a math question) -->
+                    <div class="anim-stage" id="answerAnim" hidden></div>
+                    <div class="anim-caption" id="answerAnimCap" hidden></div>
                 </div>
             </div>
 
@@ -365,10 +716,12 @@
     <!-- Modular Learn logic (order matters: core first, ui last).
          core.js: registry + 1-hour cache + question lifecycle.
          math-level1.js / english-level1.js: subject generators.
+         math-anim.js: Math Level 1 answer stepper (3-tap + ten-merge).
          ui.js: rendering + TTS wiring + controls + boot. -->
     <script src="learn/core.js"></script>
     <script src="learn/math-level1.js"></script>
     <script src="learn/english-level1.js"></script>
+    <script src="learn/math-anim.js"></script>
     <script src="learn/ui.js"></script>
 </body>
 

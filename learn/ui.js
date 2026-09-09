@@ -10,6 +10,13 @@
  *   - Reveal Answer -> show the answer (+ full sentence for stories)
  *     and speak the ANSWER.
  *   - 1-hour cache per type+category via LearnCore.
+ *
+ * Dual mode (same frame-context rule as media.js):
+ *   - Docked (framed beside the clock): instant reveal, original
+ *     behaviour — glanceable, no stage.
+ *   - Full tab (learn.html opened top-level via the docked panel's
+ *     open-in-new-tab link): math answers animate through the 3-tap
+ *     stepper in math-anim.js with a wider popup layout (body.popup).
  * ========================================================================== */
 
 (function () {
@@ -17,6 +24,17 @@
 
     const Core = window.LearnCore;
     if (!Core) return;
+
+    // Full-tab vs docked mode (same frame-context rule as media.js):
+    // framed inside the docked panel it is always embedded (instant
+    // reveal, original behaviour); top-level it is always a popup (3-tap
+    // animated answers with room for the stage). ?popup=1 on the link
+    // just documents the intent.
+    const POPUP = (function () {
+        try { return !(window.parent && window.parent !== window); }
+        catch (e) { return false; }
+    })();
+    if (POPUP && document.body) document.body.classList.add('popup');
 
     /* ------------------------------------------------------------------
      * Rendering helpers.
@@ -103,6 +121,37 @@
         updateCacheIndicators();
     }
 
+    // Math animation stepper state (3 taps: A, B, altogether; then replay).
+    // Non-math questions (or math without an anim spec) use the instant
+    // reveal path exactly as before.
+    let animStep = 0;
+    let animBusy = false;
+
+    function animStageEls() {
+        return {
+            stage: document.getElementById('answerAnim'),
+            cap: document.getElementById('answerAnimCap'),
+            btn: document.getElementById('revealBtn')
+        };
+    }
+
+    function useAnim(q) {
+        // Animation only in the full tab: the narrow dock keeps the
+        // original instant reveal so it stays glanceable beside the clock.
+        return POPUP && !!(window.LearnMathAnim && window.LearnMathAnim.supports(q));
+    }
+
+    function resetAnimFor(q) {
+        animStep = 0;
+        animBusy = false;
+        const { stage, cap, btn } = animStageEls();
+        if (window.LearnMathAnim && stage) window.LearnMathAnim.start(stage, cap);
+        const animated = useAnim(q);
+        if (btn) btn.textContent = animated ? 'Show (1 of 3)' : 'Reveal Answer';
+        const placeholder = document.getElementById('answerPlaceholder');
+        if (placeholder) placeholder.textContent = animated ? 'Tap "Show" to count' : 'Tap "Reveal Answer"';
+    }
+
     function applyQuestion(q) {
         if (!q) return;
 
@@ -136,6 +185,9 @@
             answerSentence.style.display = q.answerSentence ? '' : 'none';
         }
         if (answerPlaceholder) answerPlaceholder.hidden = false;
+
+        // New question = animation restarts from tap 1 (stage cleared).
+        resetAnimFor(q);
 
         // Keep the header subtitle in sync: "Math · Level 1" etc.
         if (subtitle) {
@@ -197,13 +249,76 @@
         speakWith(`The answer is ${q.answer}!`);
     }
 
+    // Animated path helpers: the numeral appears only at the finale
+    // (tap 3); taps 1-2 only hide the "Tap Reveal" placeholder.
+    function hideAnswerPlaceholder() {
+        const placeholder = document.getElementById('answerPlaceholder');
+        if (placeholder) placeholder.hidden = true;
+    }
+
+    function showAnimNumeral(q, step) {
+        if (step < 3) return;
+        const answerText = document.getElementById('answerText');
+        if (answerText && q) {
+            answerText.textContent = q.answer;
+            answerText.hidden = false;
+        }
+    }
+
     function wireActions() {
         const revealBtn = document.getElementById('revealBtn');
         const newBtn = document.getElementById('newQuestionBtn');
         const questionCard = document.querySelector('.question-card');
 
         if (revealBtn) {
-            revealBtn.addEventListener('click', () => {
+            revealBtn.addEventListener('click', async () => {
+                const q = Core.currentQuestion;
+                // Animated path: Math Level 1 with an anim spec steps
+                // 1 (group A) -> 2 (group B) -> 3 (altogether) -> replay.
+                if (useAnim(q)) {
+                    if (animBusy) return;
+                    // Replay after a finished run: clear and auto-play all
+                    // three steps with a beat between them.
+                    if (animStep >= 3) {
+                        animBusy = true;
+                        revealBtn.textContent = 'Playing…';
+                        resetAnimFor(q);
+                        for (let s = 1; s <= 3; s++) {
+                            // New Question mid-replay: the stage now belongs
+                            // to another question — stop driving the old one
+                            // (otherwise its visuals + numeral land on the
+                            // new question).
+                            if (Core.currentQuestion !== q) return;
+                            animStep = s;
+                            revealBtn.textContent = s < 3 ? `Show (${s + 1} of 3)` : 'Playing…';
+                            const r = await window.LearnMathAnim.advance(q, s);
+                            if (Core.currentQuestion !== q) return;
+                            if (r && !r.stale && r.speech) speakWith(r.speech);
+                            showAnimNumeral(q, s);
+                        }
+                        if (Core.currentQuestion === q) {
+                            animStep = 3;
+                            revealBtn.textContent = 'Replay';
+                        }
+                        animBusy = false;
+                        return;
+                    }
+                    animBusy = true;
+                    animStep += 1;
+                    const step = animStep;
+                    revealBtn.textContent = step === 1 ? 'Show (2 of 3)'
+                        : step === 2 ? 'Count All (3 of 3)' : 'Playing…';
+                    hideAnswerPlaceholder();
+                    const r = await window.LearnMathAnim.advance(q, step);
+                    // Stale (user hit New Question mid-animation): drop it.
+                    if (Core.currentQuestion !== q) return;
+                    if (r && !r.stale && r.speech) speakWith(r.speech);
+                    showAnimNumeral(q, step);
+                    if (step >= 3) revealBtn.textContent = 'Replay';
+                    animBusy = false;
+                    return;
+                }
+                // Instant path (English stories + anything without anim).
                 const answerText = document.getElementById('answerText');
                 const answerSentence = document.getElementById('answerSentence');
                 const placeholder = document.getElementById('answerPlaceholder');
@@ -212,7 +327,6 @@
                 // sentence (the question itself stays visible on the card).
                 if (answerText) answerText.hidden = false;
                 if (answerSentence) {
-                    const q = Core.currentQuestion;
                     const hasSentence = !!(q && q.answerSentence);
                     answerSentence.hidden = !hasSentence;
                     if (hasSentence) answerSentence.style.display = '';

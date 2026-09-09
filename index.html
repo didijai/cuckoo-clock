@@ -667,6 +667,26 @@
          If the bus schedule panel is also open, this panel shifts to the
          right of it to avoid overlap. -->
     <aside id="learnPanel" aria-hidden="true">
+        <div class="bus-panel-header">
+            <div class="p-1.5 bg-amber-900/50 rounded-lg border border-amber-600/40 text-amber-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0-6l-6.5-3.5M12 14l6.5-3.5" />
+                </svg>
+            </div>
+            <div class="flex flex-col leading-tight mr-auto min-w-0">
+                <span class="bus-panel-title">Learn Panel</span>
+                <span class="bus-panel-subtitle">Math · English</span>
+            </div>
+            <a id="learnOpenTabLink" href="learn.html?popup=1" target="_blank" rel="noopener noreferrer"
+                class="bus-panel-btn" title="Open Full Tab (animated answers)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+                    </path>
+                </svg>
+            </a>
+        </div>
         <!-- No src here: the iframe is lazy-loaded on first open (see
              showLearnPanel() in script.js) so the page stays fast when the
              feature is never used. -->

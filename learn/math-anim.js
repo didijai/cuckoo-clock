@@ -286,7 +286,7 @@
                 ones = r.items;
                 if (r.stale) return done('');
                 setCaption('');
-                return done('First! Count them!');
+                return done(`First! ${first} to start!`);
             }
             if (anim.mode === 'takeaway') {
                 const g = groupShell(`Here are ${anim.a}`, 'ga');
@@ -321,7 +321,7 @@
                 g.appendChild(row);
                 stageEl.appendChild(g);
                 const n = Math.round(anim.tensB / 10);
-                say(`More tens coming!`);
+                say(`Then ${n} more ten${n > 1 ? 's' : ''}!`);
                 const stale = await buildTens(row, n, emoji, 'gb', token, { skipFull: false });
                 if (stale) return done('');
                 badgeBigsByTens();
@@ -339,12 +339,13 @@
                 stageEl.appendChild(g);
                 if (isTensVal(second)) {
                     const n = Math.round(second / 10);
-                    say(`More tens!`);
+                    say(`Then ${n} ten${n > 1 ? 's' : ''}!`);
                     const stale = await buildTens(row, n, emoji, 'gb', token, { skipFull: false });
                     if (stale) return done('');
                     badgeBigsByTens();
-                    // Silent tail (see tens step 2): visuals carry the beat.
-                    return done('');
+                    // Name the landing value so the finale's "30 and 2"
+                    // isn't the first time 30 is spoken.
+                    return done(`That's ${second}!`);
                 }
                 const r = await popSmalls(row, second, emoji, 'gb', token);
                 ones = ones.concat(r.items);

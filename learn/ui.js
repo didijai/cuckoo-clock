@@ -321,6 +321,10 @@
                         animBusy = true;
                         revealBtn.textContent = 'Playing…';
                         resetAnimFor(q);
+                        // Replay re-earns the answer like the first run:
+                        // hide the old numeral until the finale shows it.
+                        const oldAnswer = document.getElementById('answerText');
+                        if (oldAnswer) oldAnswer.hidden = true;
                         for (let s = 1; s <= 3; s++) {
                             // New Question mid-replay: the stage now belongs
                             // to another question — stop driving the old one

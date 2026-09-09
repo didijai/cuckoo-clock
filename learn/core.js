@@ -50,7 +50,23 @@
     // Selected state. Types stay single-select; categories are a
     // MULTI-select set per type (persisted — chosen in full-tab mode,
     // honoured everywhere including the docked panel).
-    let selectedType = 'math';
+    const TYPE_STORAGE_KEY = 'clock.learn.type';
+
+    function readStoredType() {
+        try {
+            const t = localStorage.getItem(TYPE_STORAGE_KEY);
+            if (t && REGISTRY[t] && REGISTRY[t].enabled) return t;
+        } catch (err) { /* ignore */ }
+        return null;
+    }
+
+    function persistType() {
+        try {
+            localStorage.setItem(TYPE_STORAGE_KEY, selectedType);
+        } catch (err) { /* private mode etc.: works for the session */ }
+    }
+
+    let selectedType = readStoredType() || 'math';
     const CATS_STORAGE_KEY = 'clock.learn.cats';
 
     function enabledCategories(type) {
@@ -261,7 +277,13 @@
         pickCategory,
         CACHE_TTL_MS,
         get selectedType() { return selectedType; },
-        set selectedType(v) { selectedType = v; },
+        set selectedType(v) {
+            // Persisted: an invalid/disabled type is ignored, never stored.
+            if (v && REGISTRY[v] && REGISTRY[v].enabled && v !== selectedType) {
+                selectedType = v;
+                persistType();
+            }
+        },
         get currentQuestion() { return currentQuestion; },
         set currentQuestion(v) { currentQuestion = v; },
         get ttsEnabled() { return ttsEnabled; },

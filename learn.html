@@ -653,13 +653,13 @@
             min-width: 0;
         }
 
-        /* Stable buttons: reserve the 90+9 worst case up front so the
-           card doesn't grow tap-by-tap (measured 90+9 finale = 512px
-           natural). min-height, not height — larger content still grows.
-           Scoped to animated math via .has-stage (ui.js); English keeps
-           its compact card. */
+        /* Stable buttons: reserve the 80+10 worst case up front so the
+           card doesn't grow tap-by-tap (measured 80+10 finale = 569px
+           natural; 90+9 = 512px). min-height, not height — larger
+           content still grows. Scoped to animated math via .has-stage
+           (ui.js); English keeps its compact card. */
         body.popup .question-card.has-stage {
-            min-height: 520px;
+            min-height: 577px;
         }
 
         body.popup .question-text {

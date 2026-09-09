@@ -752,6 +752,11 @@
         }
 
         body.popup .anim-ten .anim-item {
+            /* Exactly 5 per row: fractional cells, never content-sized.
+               (Emoji advance width varies by browser/font — content sizing
+               is what let a 6th item squeeze in on some browsers.) */
+            flex: 0 0 calc((100% - 12px) / 5);
+            justify-content: center;
             font-size: 26px;
             font-size: min(30px, 13cqw);
         }

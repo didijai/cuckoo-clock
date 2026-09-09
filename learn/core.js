@@ -98,6 +98,25 @@
         return kept.length ? kept : valid.slice();
     }
 
+    // Re-read persisted picks (after a `storage` event from another tab —
+    // usually the full tab). Returns true if any type's set changed.
+    function reloadCats() {
+        const stored = readStoredCats() || {};
+        let changed = false;
+        Object.keys(REGISTRY).forEach((type) => {
+            const valid = enabledCategories(type);
+            const kept = Array.isArray(stored[type])
+                ? stored[type].filter((c) => valid.indexOf(c) >= 0)
+                : [];
+            const next = kept.length ? kept : valid.slice();
+            if (next.join('|') !== getSelected(type).join('|')) {
+                selectedCats[type] = next;
+                changed = true;
+            }
+        });
+        return changed;
+    }
+
     // Toggle one category; never allows deselecting the last one.
     // Returns true if the set changed.
     function toggleCategory(type, cat) {
@@ -238,6 +257,7 @@
         enabledCategories,
         getSelected,
         toggleCategory,
+        reloadCats,
         pickCategory,
         CACHE_TTL_MS,
         get selectedType() { return selectedType; },

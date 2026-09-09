@@ -480,6 +480,19 @@
             // Google-mode setting is honoured from the start (docked mode
             // gets it pushed from the parent instead).
             if (POPUP) refreshTtsFromStorage();
+            // Cross-tab catalog sync: picks persist to localStorage, and a
+            // `storage` event fires in every OTHER same-origin document —
+            // so the docked iframe learns full-tab changes live (and vice
+            // versa) without any parent relay or reload.
+            window.addEventListener('storage', (e) => {
+                if (!e || e.key !== 'clock.learn.cats') return;
+                try {
+                    if (Core.reloadCats()) {
+                        renderCategoryChips();
+                        refreshBody();
+                    }
+                } catch (err) { /* keep serving the current question */ }
+            });
             renderTypeChips();
             renderCategoryChips();
             wireActions();

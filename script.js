@@ -300,10 +300,9 @@ function debounce(fn, delay) {
 
 const debouncedSaveSettings = debounce(saveSettings, 150);
 
-// Bus Schedule Panel Elements
+// Bus Schedule Panel Elements (toggled from the quick-route sidebar)
 const busPanel = document.getElementById('busPanel');
 const busFrame = document.getElementById('busFrame');
-const busScheduleToggle = document.getElementById('busScheduleToggle');
 const busReloadBtn = document.getElementById('busReloadBtn');
 const busOpenTabLink = document.getElementById('busOpenTabLink');
 
@@ -312,14 +311,12 @@ const busOpenTabLink = document.getElementById('busOpenTabLink');
 // controls its wrapper visibility and screen-space reservation.
 const learnPanel = document.getElementById('learnPanel');
 const learnFrame = document.getElementById('learnFrame');
-const learnPanelToggle = document.getElementById('learnPanelToggle');
 const learnToggleBtn = document.getElementById('learnToggleBtn');
 // Media Gallery Panel (Drive photo/audio/video). Same left-docked pattern
 // as Learn: self-contained iframe (media.html + media.js); the parent only
 // controls visibility, screen space and the rotation interval.
 const mediaPanel = document.getElementById('mediaPanel');
 const mediaFrame = document.getElementById('mediaFrame');
-const mediaPanelToggle = document.getElementById('mediaPanelToggle');
 const mediaToggleBtn = document.getElementById('mediaToggleBtn');
 const mediaOpenTabLink = document.getElementById('mediaOpenTabLink');
 const mediaRotateSlider = document.getElementById('mediaRotateSlider');
@@ -594,7 +591,6 @@ function openBusRoute(route) {
     if (busScheduleEnabled && activeRouteUrl === route.url) {
         // Same route pressed again -> toggle the panel OFF
         busScheduleEnabled = false;
-        busScheduleToggle.checked = false; // keep Settings toggle in sync
         hideBusPanel();
         activeRouteUrl = null;
         syncShortcutHighlight();
@@ -609,7 +605,6 @@ function openBusRoute(route) {
     busFrame.src = route.url;
     if (!busScheduleEnabled) {
         busScheduleEnabled = true;
-        busScheduleToggle.checked = true; // keep Settings toggle in sync
         collapseOtherPanel('bus'); // narrow screens: one panel at a time
     }
     showBusPanel();
@@ -619,25 +614,8 @@ function openBusRoute(route) {
     saveSettings();
 }
 
-// Bus Schedule Panel Toggle:
-// ON  -> show the left-docked panel (lazy-loads hkbus.app on first use)
-//         and re-fit the clock into the remaining space to its right.
-// OFF -> hide the panel and restore the centered clock.
-busScheduleToggle.addEventListener('change', (e) => {
-    busScheduleEnabled = e.target.checked;
-    if (busScheduleEnabled) {
-        collapseOtherPanel('bus'); // narrow screens: one panel at a time
-        showBusPanel();
-        syncShortcutHighlight();
-    } else {
-        hideBusPanel();
-        activeRouteUrl = null;
-        syncShortcutHighlight();
-    }
-    positionLearnPanel();
-    fitClockToScreen();
-    saveSettings();
-});
+// Bus Schedule Panel visibility is driven by the quick-route sidebar
+// (openBusRoute toggle above); there is no Settings checkbox for it.
 
 // Reload the embedded schedule on demand (reloads whichever view
 // is currently active: homepage or a shortcut route)
@@ -648,13 +626,12 @@ busReloadBtn.addEventListener('click', () => {
 // On narrow viewports, allow only ONE left-docked panel at a time so the
 // clock keeps enough room. When `keep` ('bus', 'learn' or 'media') opens
 // while another is also open (and the screen is below the coexist
-// breakpoint), collapse the others and sync their Settings toggles + state.
+// breakpoint), collapse the others and sync their header highlights + state.
 function collapseOtherPanel(keep) {
     if (window.innerWidth >= PANEL_COEXIST_MIN_WIDTH) return;
     let collapsed = false;
     if (keep !== 'bus' && busScheduleEnabled) {
         busScheduleEnabled = false;
-        busScheduleToggle.checked = false;
         hideBusPanel();
         activeRouteUrl = null;
         syncShortcutHighlight();
@@ -662,14 +639,12 @@ function collapseOtherPanel(keep) {
     }
     if (keep !== 'learn' && learnPanelEnabled) {
         learnPanelEnabled = false;
-        learnPanelToggle.checked = false;
         hideLearnPanel();
         syncLearnHighlight();
         collapsed = true;
     }
     if (keep !== 'media' && mediaPanelEnabled) {
         mediaPanelEnabled = false;
-        mediaPanelToggle.checked = false;
         hideMediaPanel();
         syncMediaHighlight();
         collapsed = true;
@@ -861,10 +836,10 @@ function syncLearnHighlight() {
     learnToggleBtn.classList.toggle('active', learnPanelEnabled);
 }
 
-// Toggle used by BOTH the Settings checkbox and the header shortcut.
+// Toggle used by the header shortcut (the only switch; no Settings
+// checkbox for panels anymore).
 function setLearnPanelEnabled(on) {
     learnPanelEnabled = on;
-    learnPanelToggle.checked = on;
     if (on) {
         collapseOtherPanel('learn'); // narrow screens: one panel at a time
         showLearnPanel();
@@ -879,11 +854,6 @@ function setLearnPanelEnabled(on) {
 // Header "Learn" shortcut: one tap toggles the panel.
 learnToggleBtn.addEventListener('click', () => {
     setLearnPanelEnabled(!learnPanelEnabled);
-});
-
-// Settings toggle.
-learnPanelToggle.addEventListener('change', (e) => {
-    setLearnPanelEnabled(e.target.checked);
 });
 
 // ===== Media Gallery Panel (Drive photo/audio/video) =====
@@ -972,10 +942,10 @@ function syncMediaHighlight() {
     if (mediaToggleBtn) mediaToggleBtn.classList.toggle('active', mediaPanelEnabled);
 }
 
-// Toggle used by BOTH the Settings checkbox and the header shortcut.
+// Toggle used by the header shortcut (the only switch; no Settings
+// checkbox for panels anymore).
 function setMediaPanelEnabled(on) {
     mediaPanelEnabled = on;
-    mediaPanelToggle.checked = on;
     if (on) {
         collapseOtherPanel('media'); // narrow screens: one panel at a time
         showMediaPanel();
@@ -990,11 +960,6 @@ function setMediaPanelEnabled(on) {
 // Header "Media" shortcut: one tap toggles the panel.
 if (mediaToggleBtn) mediaToggleBtn.addEventListener('click', () => {
     setMediaPanelEnabled(!mediaPanelEnabled);
-});
-
-// Settings toggle.
-if (mediaPanelToggle) mediaPanelToggle.addEventListener('change', (e) => {
-    setMediaPanelEnabled(e.target.checked);
 });
 
 // Rotation interval slider: live label + debounced persist + push to iframe.
@@ -1502,19 +1467,16 @@ speedSlider.value = speedMultiplier;
 speedVal.textContent = `${speedMultiplier}x ${speedMultiplier === 1 ? '(Realtime)' : 'Speed'}`;
 
 if (busScheduleEnabled) {
-    busScheduleToggle.checked = true;
     busOpenTabLink.href = currentBusUrl;
     showBusPanel();
     syncShortcutHighlight();
 }
 
 if (learnPanelEnabled) {
-    learnPanelToggle.checked = true;
     showLearnPanel();
 }
 syncLearnHighlight();
 if (mediaPanelEnabled) {
-    mediaPanelToggle.checked = true;
     showMediaPanel();
 }
 syncMediaHighlight();

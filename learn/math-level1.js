@@ -1,15 +1,18 @@
 /* ==========================================================================
- * Math generators — one pure generator per category (4 cases that used to
+ * Math generators — one pure generator per category (5 cases that used to
  * be picked at random inside a single "Level 1").
  *
- *   within10  -> two single-digit addends whose sum is <= 10
- *   tens-ones -> single digit + a multiple of 10 (tens on either side)
- *   tens-tens -> two multiples of 10 totalling <= 90
- *   takeaway  -> subtraction of two single digits (never negative)
+ *   within10    -> two single-digit addends whose sum is <= 10
+ *   tens-ones   -> single digit + a multiple of 10 (tens on either side)
+ *   tens-tens   -> two multiples of 10 totalling <= 90
+ *   takeaway    -> subtraction of two single digits (never negative)
+ *   missing-add -> single-digit addition with one addend hidden, sum <= 10
+ *                  e.g. "3 + ( ) = 7" (answer 4) — blank on either side
  *
  * Core picks a random category across the user's multi-selected set, so
- * selecting all four reproduces the old uniform mix. No user input — the
- * answer is revealed on demand (animated in full-tab mode).
+ * selecting all five reproduces the old uniform mix plus the new blank.
+ * No user input — the answer is revealed on demand (animated in full-tab
+ * mode).
  * ========================================================================== */
 
 (function () {
@@ -82,10 +85,45 @@
         return build('-', a, b, 'takeaway', { mode: 'takeaway', a, b });
     }
 
+    // Missing addend within 10: single digits only, total <= 10.
+    // e.g. "3 + ( ) = 7" (answer 4) or "( ) + 2 = 4" (answer 2).
+    // The blank lands on either side at random.
+    function generateMissingAdd() {
+        const total = randInt(2, 10);          // sum, single digit or 10
+        const known = randInt(1, total - 1);   // the visible addend
+        const missing = total - known;         // 1..9, the answer
+        const missingFirst = Math.random() < 0.5;
+        const text = missingFirst
+            ? `( ) + ${known} = ${total}`
+            : `${known} + ( ) = ${total}`;
+        const full = missingFirst
+            ? `${missing} + ${known} = ${total}`
+            : `${known} + ${missing} = ${total}`;
+        return {
+            type: 'math',
+            category: 'missing-add',
+            display: 'math',
+            kind: 'add',
+            text,
+            answer: String(missing),
+            answerSentence: full,
+            hint: null,
+            operator: '+',
+            prompt: 'What is the missing number?',
+            spokenQuestion: missingFirst
+                ? `What plus ${known} equals ${total}?`
+                : `${known} plus what equals ${total}?`,
+            spokenAnswer: `The missing number is ${missing}! ${full}!`,
+            emoji: pickEmoji(),
+            anim: { mode: 'missing', known, missing, total, missingFirst }
+        };
+    }
+
     if (window.LearnCore) {
         window.LearnCore.registerGenerator('math', 'within10', generateWithin10);
         window.LearnCore.registerGenerator('math', 'tens-ones', generateTensOnes);
         window.LearnCore.registerGenerator('math', 'tens-tens', generateTensTens);
         window.LearnCore.registerGenerator('math', 'takeaway', generateTakeaway);
+        window.LearnCore.registerGenerator('math', 'missing-add', generateMissingAdd);
     }
 })();

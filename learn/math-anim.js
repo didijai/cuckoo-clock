@@ -18,6 +18,10 @@
  *   mixed    {aVal, bVal}        -> operands in QUESTION order (one is
  *      tens, the other ones); group A renders first, group B second
  *   takeaway {a, b}            -> a items, b fly away ("bye-bye")
+ *   missing  {known, missing, total, missingFirst}
+ *      -> known blue + missing orange small items (total <= 10);
+ *      step 1 shows what we have, step 2 counts on the missing part,
+ *      step 3 joins to the total shown in the question
  *
  * API:
  *   LearnMathAnim.supports(q)            -> true for math + anim spec
@@ -299,6 +303,19 @@
                 setCaption('');
                 return done(`Here are ${anim.a}! Count them!`);
             }
+            if (anim.mode === 'missing') {
+                // Step 1 always shows the KNOWN part (never the blank) —
+                // kids count what they have before hunting the missing bit.
+                const g = groupShell(`We have ${anim.known}`, 'ga');
+                const row = mk('div', 'anim-row');
+                g.appendChild(row);
+                stageEl.appendChild(g);
+                const r = await popSmalls(row, anim.known, emoji, 'ga', token);
+                items = r.items;
+                if (r.stale) return done('');
+                setCaption('');
+                return done(`We have ${anim.known}! Count them!`);
+            }
         }
 
         /* ---- step 2: group B ---- */
@@ -368,12 +385,25 @@
                 setCaption('');
                 return done(`Bye-bye, ${anim.b}!`);
             }
+            if (anim.mode === 'missing') {
+                // Step 2 counts on the missing part until we reach total.
+                const g = groupShell(`Need more to make ${anim.total}`, 'gb');
+                const row = mk('div', 'anim-row');
+                g.appendChild(row);
+                stageEl.appendChild(g);
+                const r = await popSmalls(row, anim.missing, emoji, 'gb', token);
+                items = items.concat(r.items);
+                if (r.stale) return done('');
+                setCaption('');
+                return done(`And ${anim.missing} more makes ${anim.total}!`);
+            }
         }
 
         /* ---- step 3: altogether ---- */
         if (step === 3) {
             const total = Number(q.answer);
             if (anim.mode === 'singles') badgeSingles();
+            if (anim.mode === 'missing') badgeSingles();
             if (anim.mode === 'tens') badgeBigsByTens();
             if (anim.mode === 'mixed') { badgeBigsByTens(); badgeOnes(isTensVal(Math.round(anim.aVal)) ? mixedTensOf(anim) : 0); }
             finalePop();
@@ -383,6 +413,13 @@
                 const left = items.length - anim.b;
                 setCaption('');
                 return done(`${left} left!`);
+            }
+            if (anim.mode === 'missing') {
+                const full = anim.missingFirst
+                    ? `${anim.missing} plus ${anim.known} equals ${anim.total}`
+                    : `${anim.known} plus ${anim.missing} equals ${anim.total}`;
+                setCaption('');
+                return done(`Altogether — ${anim.total}! So ${full}!`);
             }
             if (anim.mode === 'mixed') {
                 const first = Math.round(anim.aVal);

@@ -314,14 +314,34 @@
 
     // Animated path helpers: the numeral appears only at the finale
     // (tap 3), inline on the question line as "= 7" — the single answer.
+    // Missing-add questions instead fill the blank in place, e.g.
+    // "( ) + 4 = 5" becomes "1 + 4 = 5" (never "…= 5 1" appended).
     // Taps 1-2 only hide the "Tap Show" placeholder.
     function hideAnswerPlaceholder() {
         const placeholder = document.getElementById('answerPlaceholder');
         if (placeholder) placeholder.hidden = true;
     }
 
+    // Completed equation for a missing-add question: swap the "( )"
+    // blank with the answer. Falls back to the generator's full
+    // sentence when the blank marker is absent.
+    function fillMissingBlank(q) {
+        const text = String((q && q.text) || '');
+        if (text.indexOf('( )') >= 0) return text.replace('( )', String(q.answer));
+        return String((q && q.answerSentence) || text);
+    }
+
     function showAnimNumeral(q, step) {
         if (step < 3) return;
+        if (q && q.category === 'missing-add') {
+            const questionText = document.getElementById('questionText');
+            const answerText = document.getElementById('answerText');
+            const answerSentence = document.getElementById('answerSentence');
+            if (questionText) questionText.textContent = fillMissingBlank(q);
+            if (answerText) answerText.hidden = true;
+            if (answerSentence) answerSentence.hidden = true;
+            return;
+        }
         const answerText = document.getElementById('answerText');
         if (answerText && q) {
             answerText.textContent = `= ${q.answer}`;
@@ -368,8 +388,14 @@
                         resetAnimFor(q);
                         // Replay re-earns the answer like the first run:
                         // hide the old numeral until the finale shows it.
+                        // Missing-add instead restores the blank until the
+                        // finale fills it again.
                         const oldAnswer = document.getElementById('answerText');
                         if (oldAnswer) oldAnswer.hidden = true;
+                        if (q && q.category === 'missing-add') {
+                            const questionText = document.getElementById('questionText');
+                            if (questionText) questionText.textContent = q.text;
+                        }
                         for (let s = 1; s <= 3; s++) {
                             // New Question mid-replay: the stage now belongs
                             // to another question — stop driving the old one
@@ -418,6 +444,18 @@
                 const answerText = document.getElementById('answerText');
                 const answerSentence = document.getElementById('answerSentence');
                 const placeholder = document.getElementById('answerPlaceholder');
+                // Missing-add: fill the blank in the question itself, e.g.
+                // "( ) + 4 = 5" -> "1 + 4 = 5". No separate numeral, so
+                // the answer is shown once, never appended.
+                if (q && q.category === 'missing-add') {
+                    const questionText = document.getElementById('questionText');
+                    if (questionText) questionText.textContent = fillMissingBlank(q);
+                    if (answerText) answerText.hidden = true;
+                    if (answerSentence) answerSentence.hidden = true;
+                    if (placeholder) placeholder.hidden = true;
+                    speakAnswer(); // reveal + read the answer out loud
+                    return;
+                }
                 // Story questions: single display — the full sentence with
                 // the key phrase (q.answer, always a substring of the
                 // sentence) emphasized inline. No separate numeral, so the

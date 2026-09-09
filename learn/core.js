@@ -4,7 +4,7 @@
  * Part of the modular Learn panel (see learn/ folder):
  *   core.js            -> this file: REGISTRY, selection state, 1-hour
  *                         localStorage cache, generator registry.
- *   math-level1.js     -> registers the four Math generators (one per
+ *   math-level1.js     -> registers the five Math generators (one per
  *                         category).
  *   english-level1.js  -> registers English Level 1 generator (K3 stories).
  *   ui.js              -> rendering, TTS wiring, controls, boot.
@@ -33,7 +33,8 @@
                 'within10': { label: 'Add within 10', enabled: true },
                 'tens-ones': { label: 'Tens + Ones', enabled: true },
                 'tens-tens': { label: 'Tens + Tens', enabled: true },
-                'takeaway': { label: 'Take Away', enabled: true }
+                'takeaway': { label: 'Take Away', enabled: true },
+                'missing-add': { label: 'Missing Number', enabled: true }
             }
         },
         english: {

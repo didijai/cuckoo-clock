@@ -608,14 +608,20 @@
             margin: 0 auto;
             padding: 22px 28px;
             gap: 24px;
-            /* Sidebar layout: pickers left, content right. */
-            flex-direction: row;
-            align-items: flex-start;
+            /* Sidebar grid: pickers left (rows 1-2), card + actions right,
+               status bottom-left under the sidebar. Frees the full card
+               height for the question + stage. */
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr);
+            /* Sidebar stacks pickers, actions, status (spacer pushes the
+               status to the bottom); the card spans full height. */
+            grid-template-rows: auto auto minmax(0, 1fr) auto;
         }
 
-        /* Picker sidebar: type above category, fixed width. */
+        /* Picker sidebar. */
         body.popup .learn-pickrow {
-            flex: 0 0 240px;
+            grid-column: 1;
+            grid-row: 1;
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -627,24 +633,55 @@
             min-width: 0;
         }
 
-        /* Content column takes the remaining width. */
+        /* Content pieces are grid items via display:contents wrapper. */
         body.popup .learn-main {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            flex: 1 1 auto;
-            min-width: 0;
+            display: contents;
+        }
+
+        body.popup .question-card {
+            grid-column: 2;
+            grid-row: 1 / span 4;
+            min-height: 0;
+        }
+
+        /* Animated math still reserves its stage (overrides the 0 above). */
+        body.popup .question-card.has-stage {
+            min-height: 577px;
+        }
+
+        /* Action buttons live in the sidebar under the pickers. */
+        body.popup .learn-actions {
+            grid-column: 1;
+            grid-row: 2;
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        body.popup .learn-footer {
+            grid-column: 1;
+            grid-row: 4;
+            align-self: end;
         }
 
         /* Narrow popup windows fall back to the stacked layout. */
         @media (max-width: 700px) {
             body.popup .learn-body {
+                display: flex;
                 flex-direction: column;
             }
 
+            body.popup .learn-main {
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+                min-width: 0;
+            }
+
             body.popup .learn-pickrow {
-                flex: 1 1 auto;
                 position: static;
+            }
+
+            body.popup .learn-actions {
+                grid-template-columns: 1fr 1fr;
             }
         }
 

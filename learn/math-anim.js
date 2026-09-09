@@ -61,8 +61,6 @@
         capEl.hidden = !html;
     }
 
-    const MERGE_HINT = `<span class="cap-hint">10 small = 1 big</span>`;
-
     /* ---------------- builders ------------------------------------ */
 
     function groupShell(label, groupCls) {
@@ -248,7 +246,7 @@
                 const row = mk('div', 'anim-row');
                 g.appendChild(row);
                 stageEl.appendChild(g);
-                setCaption(MERGE_HINT);
+                setCaption('');
                 const n = Math.round(anim.tensA / 10);
                 const firstSpeech = n > 0
                     ? `Let's make a ten! One big means 10!`
@@ -268,7 +266,7 @@
                 g.appendChild(row);
                 stageEl.appendChild(g);
                 if (isTensVal(first)) {
-                    setCaption(MERGE_HINT);
+                    setCaption('');
                     const n = Math.round(first / 10);
                     const stale = await buildTens(row, n, emoji, 'ga', token);
                     if (stale) return done('');

@@ -337,17 +337,29 @@
             gap: 6px;
             justify-content: center;
             align-items: center;
+            /* Definite width (not fit-content): required — %-width items
+               and cqw glyph sizing below cannot resolve against an
+               indefinite flex cross size, and inline-size containment
+               would otherwise collapse the row to 0. */
+            width: 100%;
             max-width: 100%;
+            /* Container for cqw glyph sizing: emoji font scales with ROW
+               width, so glyphs keep air at any window size. */
+            container-type: inline-size;
         }
 
-        /* One ten being composed: 10 small in a dashed box. */
+        /* One ten being composed: 10 small in a dashed box.
+           Definite width (not fit-content): same reason as .anim-row —
+           inline-size containment would otherwise collapse the box and
+           its cqw-sized glyphs to 0. */
         .anim-ten {
             display: flex;
             flex-wrap: wrap;
             gap: 3px;
             justify-content: center;
             align-items: center;
-            max-width: 150px;
+            width: 210px;
+            max-width: 100%;
             padding: 6px;
             border: 1.5px dashed rgba(148, 163, 184, 0.5);
             border-radius: 12px;
@@ -448,8 +460,8 @@
 
         .anim-badge {
             position: absolute;
-            top: -8px;
-            right: -8px;
+            top: 2px;
+            right: 2px;
             min-width: 28px;
             height: 28px;
             padding: 0 6px;
@@ -461,12 +473,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 2;
         }
 
         .anim-minibadge {
             position: absolute;
-            bottom: -6px;
-            right: -4px;
+            bottom: 0;
+            right: 0;
             min-width: 20px;
             height: 20px;
             padding: 0 4px;
@@ -480,6 +493,7 @@
             justify-content: center;
             transform: scale(0);
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 2;
         }
 
         .anim-minibadge.in {
@@ -591,6 +605,37 @@
             padding: 30px 28px;
         }
 
+        /* Inline answer: question and numeral share one row
+           (4 + 3  =>  4 + 3 = 7) to save vertical space on short
+           screens. Stage stays full-width below. */
+        body.popup .question-card {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            column-gap: 22px;
+            row-gap: 4px;
+        }
+
+        body.popup .question-prompt {
+            flex: 1 1 100%;
+            margin-bottom: 0;
+        }
+
+        body.popup .answer-area {
+            flex: 0 0 auto;
+            flex-direction: row;
+            align-items: center;
+            min-height: 76px;
+            margin-top: 0;
+        }
+
+        body.popup .anim-stage,
+        body.popup .anim-caption {
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+
         body.popup .question-text {
             font-size: 76px;
         }
@@ -600,7 +645,7 @@
         }
 
         body.popup .answer-text {
-            font-size: 60px;
+            font-size: 72px;
         }
 
         body.popup .anim-stage {
@@ -608,29 +653,42 @@
             padding-top: 10px;
         }
 
-        /* Row capacity (popup card interior ≈ 608px):
-           5 bigs:   5 × 112 + 4 × 6 = 584  -> one row of 5, wraps 5+4 for 9
-           10 small: 10 × 52 + 9 × 6 = 574  -> always a single row */
-        body.popup .anim-item {
-            font-size: 52px;
-        }
-
-        body.popup .anim-ten {
-            max-width: 210px;
-            padding: 10px;
-        }
-
-        body.popup .anim-ten .anim-item {
-            font-size: 30px;
-        }
-
+        /* Row capacity — guaranteed at ANY window width, not just
+           desktop: bigs always 5 per row (6th wraps to row 2), row-level
+           smalls always a single row of up to 10. Widths are row-relative
+           so narrow windows shrink items instead of reflowing the count. */
         body.popup .anim-big {
-            width: 112px;
-            height: 112px;
+            width: calc((100% - 24px) / 5);
+            max-width: 112px;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            flex: 0 0 auto;
         }
 
         body.popup .anim-big-e {
             font-size: 68px;
+            /* Box is ~20cqw wide (5 per row): 13cqw keeps glyphs clear. */
+            font-size: min(68px, 13cqw);
+        }
+
+        body.popup .anim-row > .anim-item {
+            width: calc((100% - 54px) / 10);
+            flex: 0 0 auto;
+            justify-content: center;
+            font-size: 46px;
+            /* Box is ~10cqw wide: 7cqw keeps ~30% air around the glyph. */
+            font-size: min(46px, 7cqw);
+        }
+
+        body.popup .anim-ten {
+            max-width: min(210px, 100%);
+            padding: 10px;
+            container-type: inline-size;
+        }
+
+        body.popup .anim-ten .anim-item {
+            font-size: 26px;
+            font-size: min(30px, 13cqw);
         }
 
         body.popup .anim-caption {
@@ -687,11 +745,13 @@
                     <span class="answer-placeholder" id="answerPlaceholder">Tap "Reveal Answer"</span>
                     <span class="answer-text" id="answerText" hidden></span>
                     <span class="answer-sentence" id="answerSentence" hidden></span>
-                    <!-- Math answer animation stage (3-tap stepper; hidden
-                         until the first Reveal tap on a math question) -->
-                    <div class="anim-stage" id="answerAnim" hidden></div>
-                    <div class="anim-caption" id="answerAnimCap" hidden></div>
                 </div>
+                <!-- Math answer animation stage (3-tap stepper). Sibling of
+                     the answer row (NOT inside it) so the wide stage never
+                     stretches the question row and forces a wrap. Hidden
+                     until the first stepper tap; docked mode never shows it. -->
+                <div class="anim-stage" id="answerAnim" hidden></div>
+                <div class="anim-caption" id="answerAnimCap" hidden></div>
             </div>
 
             <!-- Reveal + New Question -->

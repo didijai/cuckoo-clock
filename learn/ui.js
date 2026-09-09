@@ -211,10 +211,37 @@
      * ------------------------------------------------------------------ */
 
     // Speak `text` aloud, honoring the TTS + sound gates from the parent.
+    // Interrupt-first: any in-flight utterance (answer counts, previous
+    // question) is stopped so New Question / next tap is never talked over.
     function speakWith(text) {
         if (!text || !window.LearnTTS) return;
+        if (POPUP) refreshTtsFromStorage();
         if (!Core.ttsEnabled || !Core.soundActive) return;
+        try { window.LearnTTS.stop(); } catch (err) { /* best-effort */ }
         window.LearnTTS.speak(text);
+    }
+
+    // Standalone popup has no parent bridge, but it shares origin
+    // localStorage with the clock page — read the persisted TTS mode
+    // directly so the full tab honours Settings (engine + off). Re-read
+    // per speak so a Settings change applies without reopening the tab.
+    function refreshTtsFromStorage() {
+        let mode = null;
+        try {
+            const raw = localStorage.getItem('clock.settings');
+            const s = raw && JSON.parse(raw);
+            if (s && typeof s.ttsMode === 'string') mode = s.ttsMode.toLowerCase();
+        } catch (err) { /* storage unavailable: keep current gating */ }
+        if (mode !== 'off' && mode !== 'auto' && mode !== 'browser' && mode !== 'google') return;
+        Core.ttsEnabled = (mode !== 'off');
+        Core.ttsEngine = (mode === 'off' ? 'auto' : mode);
+        try {
+            if (window.LearnTTS && typeof window.LearnTTS.setEngine === 'function') {
+                // No-op when unchanged (setEngine early-returns), so this
+                // never interrupts speech by itself.
+                window.LearnTTS.setEngine(Core.ttsEngine);
+            }
+        } catch (err) { /* engine switch is best-effort */ }
     }
 
     // Speak the current question ONLY (never the answer):
@@ -250,7 +277,8 @@
     }
 
     // Animated path helpers: the numeral appears only at the finale
-    // (tap 3); taps 1-2 only hide the "Tap Reveal" placeholder.
+    // (tap 3), inline on the question line as "= 7" — the single answer.
+    // Taps 1-2 only hide the "Tap Show" placeholder.
     function hideAnswerPlaceholder() {
         const placeholder = document.getElementById('answerPlaceholder');
         if (placeholder) placeholder.hidden = true;
@@ -260,7 +288,7 @@
         if (step < 3) return;
         const answerText = document.getElementById('answerText');
         if (answerText && q) {
-            answerText.textContent = q.answer;
+            answerText.textContent = `= ${q.answer}`;
             answerText.hidden = false;
         }
     }
@@ -399,6 +427,10 @@
      * ------------------------------------------------------------------ */
     document.addEventListener('DOMContentLoaded', () => {
         try {
+            // Popup: pick up the persisted engine before first speak so a
+            // Google-mode setting is honoured from the start (docked mode
+            // gets it pushed from the parent instead).
+            if (POPUP) refreshTtsFromStorage();
             renderTypeChips();
             renderCategoryChips();
             wireActions();

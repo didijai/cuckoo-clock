@@ -55,32 +55,10 @@
         return e;
     }
 
-    // "21, 22, 23" helper for count-along speech.
-    function countStr(from, to) {
-        const out = [];
-        for (let i = from; i <= to; i++) out.push(String(i));
-        return out.join(', ');
-    }
-
-    // "10, 20, 30" helper — tens are always counted by tens, never by ones.
-    function tensStr(from, to) {
-        const out = [];
-        for (let v = from; v <= to; v += 10) out.push(String(v));
-        return out.join(', ');
-    }
-
     function setCaption(html) {
         if (!capEl) return;
         capEl.innerHTML = html;
         capEl.hidden = !html;
-    }
-
-    function breakdown(aTxt, op, bTxt, total, clsA, clsB) {
-        return `<b class="cap-n ${clsA || 'cap-a'}">${aTxt}</b> ` +
-            `<span class="cap-op">${op}</span> ` +
-            `<b class="cap-n ${clsB || 'cap-b'}">${bTxt}</b> ` +
-            `<span class="cap-op">=</span> ` +
-            `<b class="cap-n cap-total">${total}</b>`;
     }
 
     const MERGE_HINT = `<span class="cap-hint">10 small = 1 big</span>`;
@@ -262,8 +240,8 @@
                 const r = await popSmalls(row, anim.a, emoji, 'ga', token);
                 items = r.items;
                 if (r.stale) return done('');
-                setCaption(breakdown(anim.a, '+', '?', '?', 'cap-a', 'cap-b'));
-                return done(`Count with me! ${countStr(1, anim.a)}.`);
+                setCaption('');
+                return done('First! Count them!');
             }
             if (anim.mode === 'tens') {
                 const g = groupShell('First', 'ga');
@@ -273,13 +251,13 @@
                 setCaption(MERGE_HINT);
                 const n = Math.round(anim.tensA / 10);
                 const firstSpeech = n > 0
-                    ? `Let's make a ten! ${countStr(1, 10)}. One big means 10!`
+                    ? `Let's make a ten! One big means 10!`
                     : 'First group is empty!';
                 // Render first ten full in background-safe sequence:
                 const stale = await buildTens(row, n, emoji, 'ga', token);
                 if (stale) return done('');
                 badgeBigsByTens();
-                const rest = n > 1 ? ` And ${n - 1} more ten${n - 1 > 1 ? 's' : ''}: ${tensStr(20, n * 10)}.` : '';
+                const rest = n > 1 ? ` And ${n - 1} more tens!` : '';
                 return done(firstSpeech + rest);
             }
             if (anim.mode === 'mixed') {
@@ -296,14 +274,14 @@
                     if (stale) return done('');
                     badgeBigsByTens();
                     return done(n === 1
-                        ? `First! Let's make a ten! ${countStr(1, 10)}. That's 10!`
-                        : `First! ${n} tens! ${tensStr(10, first)}.`);
+                        ? `First! Let's make a ten! One big means 10!`
+                        : `First! ${n} tens!`);
                 }
                 const r = await popSmalls(row, first, emoji, 'ga', token);
                 ones = r.items;
                 if (r.stale) return done('');
-                setCaption(breakdown(first, '+', Math.round(anim.bVal), '?', 'cap-a', 'cap-b'));
-                return done(`First! Count with me! ${countStr(1, first)}.`);
+                setCaption('');
+                return done('First! Count them!');
             }
             if (anim.mode === 'takeaway') {
                 const g = groupShell(`Here are ${anim.a}`, 'ga');
@@ -313,8 +291,8 @@
                 const r = await popSmalls(row, anim.a, emoji, 'ga', token);
                 items = r.items;
                 if (r.stale) return done('');
-                setCaption(breakdown(anim.a, '−', anim.b, '?', 'cap-a', 'cap-b'));
-                return done(`Here are ${anim.a}! ${countStr(1, anim.a)}.`);
+                setCaption('');
+                return done(`Here are ${anim.a}! Count them!`);
             }
         }
 
@@ -329,8 +307,8 @@
                 const r = await popSmalls(row, anim.b, emoji, 'gb', token);
                 items = items.concat(r.items);
                 if (r.stale) return done('');
-                setCaption(breakdown(anim.a, '+', anim.b, '?', 'cap-a', 'cap-b'));
-                return done(`And ${anim.b} more! ${countStr(anim.a + 1, total)}.`);
+                setCaption('');
+                return done(`And ${anim.b} more!`);
             }
             if (anim.mode === 'tens') {
                 const g = groupShell('Then', 'gb');
@@ -341,8 +319,7 @@
                 const stale = await buildTens(row, n, emoji, 'gb', token, { skipFull: false });
                 if (stale) return done('');
                 badgeBigsByTens();
-                const base = Math.round(anim.tensA);
-                return done(`And ${n} more ten${n > 1 ? 's' : ''}! ${tensStr(base + 10, total)}.`);
+                return done(`And ${n} more ten${n > 1 ? 's' : ''}!`);
             }
             if (anim.mode === 'mixed') {
                 // Group B = SECOND operand, whatever it is.
@@ -357,7 +334,7 @@
                     const stale = await buildTens(row, n, emoji, 'gb', token, { skipFull: false });
                     if (stale) return done('');
                     badgeBigsByTens();
-                    return done(`And ${n} ten${n > 1 ? 's' : ''}! ${tensStr(10, second)}.`);
+                    return done(`And ${n} tens!`);
                 }
                 const r = await popSmalls(row, second, emoji, 'gb', token);
                 ones = ones.concat(r.items);
@@ -365,8 +342,8 @@
                 // Ones after tens count on from the tens value.
                 const tensVal = mixedTensOf(anim);
                 badgeOnes(tensVal);
-                setCaption(breakdown(first, '+', second, '?', 'cap-a', 'cap-b'));
-                return done(`And ${second} more! ${countStr(tensVal + 1, total)}.`);
+                setCaption('');
+                return done(`And ${second} more!`);
             }
             if (anim.mode === 'takeaway') {
                 // Mark the last b items: circled, then fly away.
@@ -377,7 +354,7 @@
                 doomed.forEach((s) => s.classList.add('gone'));
                 await sleep(SETTLE_MS);
                 if (token !== runToken) return done('');
-                setCaption(breakdown(anim.a, '−', anim.b, '?', 'cap-a', 'cap-b'));
+                setCaption('');
                 return done(`Bye-bye, ${anim.b}!`);
             }
         }
@@ -393,7 +370,7 @@
             if (token !== runToken) return done('');
             if (anim.mode === 'takeaway') {
                 const left = items.length - anim.b;
-                setCaption(breakdown(anim.a, '−', anim.b, left, 'cap-a', 'cap-b'));
+                setCaption('');
                 return done(`${left} left!`);
             }
             if (anim.mode === 'mixed') {
@@ -401,14 +378,14 @@
                 const second = Math.round(anim.bVal);
                 const tensVal = mixedTensOf(anim);
                 const onesVal = total - tensVal;
-                setCaption(breakdown(first, '+', second, total, 'cap-a', 'cap-b'));
+                setCaption('');
                 return done(`Altogether — ${total}! That's ${tensVal} and ${onesVal}!`);
             }
             if (anim.mode === 'tens') {
-                setCaption(breakdown(anim.tensA, '+', anim.tensB, total, 'cap-a', 'cap-b'));
+                setCaption('');
                 return done(`Altogether — ${total}!`);
             }
-            setCaption(breakdown(anim.a, '+', anim.b, total, 'cap-a', 'cap-b'));
+            setCaption('');
             return done(`Altogether — ${total}!`);
         }
 

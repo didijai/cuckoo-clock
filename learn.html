@@ -578,6 +578,19 @@
             }
         }
 
+        /* Docked (framed beside the clock): category picking lives in
+           the full tab only — hide the block, honour the stored set. */
+        body:not(.popup) #categoryBlock {
+            display: none;
+        }
+
+        /* Main column wrapper (card + actions + footer). Transparent by
+           default so docked layout is byte-identical; popup mode makes it
+           the right-hand column next to the picker sidebar. */
+        .learn-main {
+            display: contents;
+        }
+
         /* ----- Popup (full-tab) mode: room to breathe -----
            Centered column, larger question + stage so the animation is
            the hero instead of squeezed beside the clock. */
@@ -590,30 +603,56 @@
             display: none;
         }
         body.popup .learn-body {
-            max-width: 720px;
+            max-width: 1000px;
             width: 100%;
             margin: 0 auto;
             padding: 22px 28px;
+            gap: 24px;
+            /* Sidebar layout: pickers left, content right. */
+            flex-direction: row;
+            align-items: flex-start;
+        }
+
+        /* Picker sidebar: type above category, fixed width. */
+        body.popup .learn-pickrow {
+            flex: 0 0 240px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: sticky;
+            top: 0;
+        }
+
+        body.popup .learn-pick {
+            min-width: 0;
+        }
+
+        /* Content column takes the remaining width. */
+        body.popup .learn-main {
+            display: flex;
+            flex-direction: column;
             gap: 18px;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        /* Narrow popup windows fall back to the stacked layout. */
+        @media (max-width: 700px) {
+            body.popup .learn-body {
+                flex-direction: column;
+            }
+
+            body.popup .learn-pickrow {
+                flex: 1 1 auto;
+                position: static;
+            }
         }
 
         body.popup .learn-header {
             padding: 14px 28px;
         }
 
-        /* Pickers share one row in popup (labels stay above their chips);
-           wraps on narrow windows. Docked mode keeps them stacked. */
-        body.popup .learn-pickrow {
-            display: flex;
-            gap: 28px;
-            flex-wrap: wrap;
-            align-items: flex-start;
-        }
-
-        body.popup .learn-pick {
-            flex: 1 1 0;
-            min-width: 0;
-        }
+        /* (Picker layout lives with the sidebar rules above.) */
 
         body.popup .question-card {
             padding: 30px 28px;
@@ -760,14 +799,19 @@
                     <div class="learn-chips" id="typeChips"></div>
                 </div>
 
-                <!-- Category selection (panel-side). More categories coming soon. -->
-                <div class="learn-pick">
+                <!-- Category selection: full-tab mode only. The docked
+                     panel hides this block and honours the stored set. -->
+                <div class="learn-pick" id="categoryBlock">
                     <div class="learn-label">Category</div>
                     <div class="learn-chips" id="categoryChips"></div>
                 </div>
             </div>
 
-            <!-- The active question (Math sums or English word problems) -->
+            <!-- The active question (Math sums or English word problems),
+                 action buttons and status: grouped in .learn-main so popup
+                 mode can put the pickers in a left sidebar (the wrapper is
+                 display:contents by default, so docked layout is unchanged). -->
+            <div class="learn-main">
             <div class="question-card" title="Tap to hear the question again">
                 <div class="question-prompt" id="questionPrompt">What is the answer?</div>
                 <div class="question-text" id="questionText">…</div>
@@ -797,6 +841,7 @@
                     <span id="cacheNote">Cached for 1 hour</span>
                 </div>
             </div>
+            </div><!-- /.learn-main -->
         </div>
     </div>
 

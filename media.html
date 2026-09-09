@@ -122,6 +122,13 @@
         /* Inline Sign In row: centered GIS button. */
         #signinRow { display: flex; justify-content: center; flex-shrink: 0; }
 
+        /* Main column wrapper (viewer + browse + footer). Transparent by
+           default so docked layout is byte-identical; popup mode makes it
+           the right-hand column next to the toolbar sidebar. */
+        .media-main {
+            display: contents;
+        }
+
         /* ----- Single-row toolbar: Viewer/Browse + Prev/Pause/Next -----
            One flex row (wraps only on extremely narrow widths) so the
            five buttons share a single compact strip instead of two rows. */
@@ -306,7 +313,60 @@
            browse grid stretch to fill leftover vertical space. ----- */
         body.popup .media-body {
             max-width: none; width: 100%; margin: 0;
-            padding: 20px 32px; gap: 16px;
+            padding: 20px 32px; gap: 20px;
+            /* Sidebar layout: toolbar left, viewer/browse right. Stretch
+               (not flex-start) so the content column fills the viewport
+               height and the stage takes all leftover space. */
+            flex-direction: row;
+            align-items: stretch;
+        }
+        /* Toolbar sidebar: view tabs above, transport below, fixed width. */
+        body.popup .media-toolbar {
+            flex: 0 0 200px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+        }
+        body.popup .view-toggle {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        body.popup .view-toggle button {
+            text-align: center;
+        }
+        body.popup .media-controls {
+            grid-template-columns: minmax(0, 1fr);
+            justify-content: stretch;
+            align-content: start;
+        }
+        /* Content column takes the remaining width. min-height: 0 lets
+           it (and the stage) shrink to fit — never force scrolling. */
+        body.popup .media-main {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0;
+        }
+        /* Narrow popup windows fall back to the stacked layout. */
+        @media (max-width: 700px) {
+            body.popup .media-body {
+                flex-direction: column;
+            }
+            body.popup .media-toolbar {
+                flex: 1 1 auto;
+                flex-direction: row;
+                position: static;
+            }
+            body.popup .view-toggle {
+                flex-direction: row;
+            }
+            body.popup .media-controls {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
         }
         @media (min-width: 1600px) {
             body.popup .media-body { padding: 24px 48px; }
@@ -318,8 +378,12 @@
             flex: 1; min-height: 0; display: flex; flex-direction: column;
         }
         body.popup .stage-view {
-            flex: 1 1 auto; height: auto;
-            min-height: clamp(300px, calc(100vh - 340px), 780px);
+            /* Fill exactly the leftover column space: no forced floor, so
+               the tab never scrolls. (The old clamp() predated the sidebar
+               layout and overshot the viewport.) */
+            flex: 1 1 auto;
+            height: auto;
+            min-height: 0;
         }
         body.popup #browseView { flex: 1; min-height: 0; }
         body.popup .browse-grid {
@@ -327,13 +391,8 @@
             flex: 1; min-height: 0; align-content: start;
         }
         body.popup .browse-name { font-size: 11px; padding: 7px 8px; }
-        body.popup .media-toolbar { gap: 12px; }
-        /* Popup: cap the three control buttons and center them in the
-           leftover space instead of stretching them across the tab. */
-        body.popup .media-controls {
-            grid-template-columns: repeat(3, minmax(96px, 150px));
-            justify-content: center; align-content: stretch;
-        }
+        /* (Toolbar layout lives with the sidebar rules above: vertical
+           view tabs + stacked transport in wide popups.) */
         body.popup .view-toggle button { font-size: 12px; padding: 8px 16px; }
         body.popup .media-btn { font-size: 12px; padding: 8px 6px; }
         body.popup .media-footer { font-size: 11px; }
@@ -388,6 +447,10 @@
                 </div>
             </div>
 
+            <!-- Viewer + browse + status: grouped in .media-main so popup
+                 mode can put the toolbar in a left sidebar (the wrapper is
+                 display:contents by default, so docked layout is unchanged). -->
+            <div class="media-main">
             <!-- Single-item viewer (slideshow) -->
             <div id="viewerView" style="display:flex;flex-direction:column;gap:12px">
                 <div class="stage-card">
@@ -438,6 +501,7 @@
                     <span id="rotateNote">Sign in to load media</span>
                 </div>
             </div>
+            </div><!-- /.media-main -->
         </div>
     </div>
 

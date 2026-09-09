@@ -62,9 +62,6 @@
             chip.addEventListener('click', () => {
                 if (!meta.enabled) return;
                 Core.selectedType = key;
-                const catKey = Object.keys((Core.REGISTRY[key] || {}).categories || {})[0]
-                    || Core.selectedCategory;
-                Core.selectedCategory = catKey;
                 renderTypeChips();
                 renderCategoryChips();
                 refreshBody();
@@ -73,6 +70,10 @@
         });
     }
 
+    // Category chips are MULTI-select (toggle any combination; the last
+    // one can't be deselected). Rendered for full-tab mode only — the
+    // docked panel hides the whole block via CSS and honours the stored
+    // set silently.
     function renderCategoryChips() {
         const container = document.getElementById('categoryChips');
         if (!container) return;
@@ -90,6 +91,7 @@
             return;
         }
 
+        const selected = Core.getSelected();
         entries.forEach(([key, catMeta]) => {
             const chip = document.createElement('button');
             chip.type = 'button';
@@ -100,12 +102,16 @@
             if (!catMeta.enabled) {
                 chip.disabled = true;
                 chip.title = 'Coming soon';
+            } else {
+                chip.title = selected.indexOf(key) >= 0
+                    ? 'Selected — tap to remove'
+                    : 'Tap to add';
             }
-            if (key === Core.selectedCategory) chip.classList.add('active');
+            if (selected.indexOf(key) >= 0) chip.classList.add('active');
 
             chip.addEventListener('click', () => {
                 if (!catMeta.enabled) return;
-                Core.selectedCategory = key;
+                if (!Core.toggleCategory(Core.selectedType, key)) return;
                 renderCategoryChips();
                 refreshBody();
             });
@@ -199,11 +205,18 @@
         animBusy = false;
         resetAnimFor(q);
 
-        // Keep the header subtitle in sync: "Math · Level 1" etc.
+        // Keep the header subtitle in sync with the multi-select, e.g.
+        // "Math · All" or "Math · Tens + Ones +1".
         if (subtitle) {
-            const typeLabel = (Core.REGISTRY[Core.selectedType] || {}).label || q.type;
-            const catLabel = ((Core.REGISTRY[Core.selectedType] || {}).categories || {})[Core.selectedCategory];
-            subtitle.textContent = `${typeLabel} · ${(catLabel && catLabel.label) || q.category}`;
+            const typeMeta = Core.REGISTRY[Core.selectedType] || {};
+            const typeLabel = typeMeta.label || q.type;
+            const cats = typeMeta.categories || {};
+            const picked = Core.getSelected();
+            const names = picked.map((k) => (cats[k] || {}).label || k);
+            const all = names.length === Object.keys(cats).length;
+            const catText = all ? 'All'
+                : names.slice(0, 2).join(' + ') + (names.length > 2 ? ` +${names.length - 2}` : '');
+            subtitle.textContent = `${typeLabel} · ${catText}`;
         }
     }
 

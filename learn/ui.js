@@ -143,7 +143,11 @@
 
     function resetAnimFor(q) {
         animStep = 0;
-        animBusy = false;
+        // NOTE: intentionally does NOT touch animBusy. The replay loop
+        // calls this mid-run while busy; clearing the flag here reopened
+        // the gate, so a fast double-click started a second concurrent
+        // replay and both loops rendered into the same stage (double
+        // items + badges). Only applyQuestion (new question) clears busy.
         const { stage, cap, btn } = animStageEls();
         if (window.LearnMathAnim && stage) window.LearnMathAnim.start(stage, cap);
         const animated = useAnim(q);
@@ -190,7 +194,9 @@
         }
         if (answerPlaceholder) answerPlaceholder.hidden = false;
 
-        // New question = animation restarts from tap 1 (stage cleared).
+        // New question = animation restarts from tap 1 (stage cleared),
+        // and any in-flight run is abandoned (its token goes stale).
+        animBusy = false;
         resetAnimFor(q);
 
         // Keep the header subtitle in sync: "Math · Level 1" etc.

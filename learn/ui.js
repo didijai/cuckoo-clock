@@ -286,6 +286,19 @@
         speakWith(`The answer is ${q.answer}!`);
     }
 
+    // Replay paces itself to the narration: without this the loop
+    // advances the instant visuals finish and each new utterance stop()s
+    // the previous one mid-sentence (only "Altogether" survived). Estimate
+    // ~8 chars/sec at the kid-friendly rate plus a base second; capped.
+    function speechMs(text) {
+        return Math.min(900 + String(text || '').length * 125, 6000);
+    }
+
+    function paceForSpeech(text) {
+        if (!text || !Core.ttsEnabled || !Core.soundActive) return Promise.resolve();
+        return new Promise((resolve) => setTimeout(resolve, speechMs(text)));
+    }
+
     // Animated path helpers: the numeral appears only at the finale
     // (tap 3), inline on the question line as "= 7" — the single answer.
     // Taps 1-2 only hide the "Tap Show" placeholder.
@@ -333,9 +346,18 @@
                             if (Core.currentQuestion !== q) return;
                             animStep = s;
                             revealBtn.textContent = s < 3 ? `Show (${s + 1} of 3)` : 'Playing…';
-                            const r = await window.LearnMathAnim.advance(q, s);
+                            // Lead-ins speak at step start (long ten builds
+                            // talk while rendering); tails on completion.
+                            const r = await window.LearnMathAnim.advance(q, s, (lead) => speakWith(lead));
                             if (Core.currentQuestion !== q) return;
-                            if (r && !r.stale && r.speech) speakWith(r.speech);
+                            if (r && !r.stale && r.speech) {
+                                speakWith(r.speech);
+                                // Let the tail finish before the next step's
+                                // lead cuts it off (manual taps skip this —
+                                // the user sets that pace).
+                                await paceForSpeech(r.speech);
+                                if (Core.currentQuestion !== q) return;
+                            }
                             showAnimNumeral(q, s);
                         }
                         if (Core.currentQuestion === q) {
@@ -351,7 +373,7 @@
                     revealBtn.textContent = step === 1 ? 'Show (2 of 3)'
                         : step === 2 ? 'Count All (3 of 3)' : 'Playing…';
                     hideAnswerPlaceholder();
-                    const r = await window.LearnMathAnim.advance(q, step);
+                    const r = await window.LearnMathAnim.advance(q, step, (lead) => speakWith(lead));
                     // Stale (user hit New Question mid-animation): drop it.
                     if (Core.currentQuestion !== q) return;
                     if (r && !r.stale && r.speech) speakWith(r.speech);

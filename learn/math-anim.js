@@ -22,9 +22,12 @@
  * API:
  *   LearnMathAnim.supports(q)            -> true for math + anim spec
  *   LearnMathAnim.start(stageEl, capEl)  -> bind + clear for a question
- *   LearnMathAnim.advance(q, step)       -> Promise<{speech}>; renders the
- *      step's visuals (1..3) and resolves with TTS text when done. Stale
- *      runs (new question mid-animation) resolve {speech:'', stale:true}.
+ *   LearnMathAnim.advance(q, step, notify) -> Promise<{speech}>; renders
+ *      the step's visuals (1..3) and resolves with TTS text when done.
+ *      Stale runs resolve {speech:'', stale:true}. `notify` (optional) is
+ *      called synchronously with lead-in text at step START so long ten
+ *      builds talk while they render instead of after; the resolved
+ *      speech is then only the short tail (may be '').
  *   LearnMathAnim.reset()                -> cancel + clear
  * ========================================================================== */
 
@@ -220,9 +223,14 @@
         setCaption('');
     }
 
-    async function advance(q, step) {
+    async function advance(q, step, notify) {
         const token = runToken;
         const done = (speech) => ({ speech, stale: token !== runToken });
+        // Fire-and-forget lead-in for long builds (ten merges take
+        // seconds; the voice must start with the tap, not after).
+        const say = (text) => {
+            if (notify && text) { try { notify(text); } catch (err) {} }
+        };
         if (!supports(q)) return done('');
         const anim = q.anim;
         const emoji = q.emoji || '🍎';
@@ -248,15 +256,15 @@
                 stageEl.appendChild(g);
                 setCaption('');
                 const n = Math.round(anim.tensA / 10);
-                const firstSpeech = n > 0
-                    ? `Let's make a ten! One big means 10!`
-                    : 'First group is empty!';
+                // Long build: talk FIRST, visuals catch up behind the voice.
+                // Say the TOTAL tens up front ("7 tens") — never "1 plus 6
+                // more", which confuses the count.
+                say(n === 1 ? `Let's make a ten! Watch!` : `Let's make ${n} tens! Watch!`);
                 // Render first ten full in background-safe sequence:
                 const stale = await buildTens(row, n, emoji, 'ga', token);
                 if (stale) return done('');
                 badgeBigsByTens();
-                const rest = n > 1 ? ` And ${n - 1} more tens!` : '';
-                return done(firstSpeech + rest);
+                return done(n > 0 ? `One big means 10!` : 'First group is empty!');
             }
             if (anim.mode === 'mixed') {
                 // Group A = FIRST operand, whatever it is (tens or ones).
@@ -268,12 +276,11 @@
                 if (isTensVal(first)) {
                     setCaption('');
                     const n = Math.round(first / 10);
+                    say(n === 1 ? `First! Watch!` : `First! ${n} tens! Watch!`);
                     const stale = await buildTens(row, n, emoji, 'ga', token);
                     if (stale) return done('');
                     badgeBigsByTens();
-                    return done(n === 1
-                        ? `First! Let's make a ten! One big means 10!`
-                        : `First! ${n} tens!`);
+                    return done(n === 1 ? `One big means 10!` : '');
                 }
                 const r = await popSmalls(row, first, emoji, 'ga', token);
                 ones = r.items;
@@ -314,10 +321,13 @@
                 g.appendChild(row);
                 stageEl.appendChild(g);
                 const n = Math.round(anim.tensB / 10);
+                say(`More tens coming!`);
                 const stale = await buildTens(row, n, emoji, 'gb', token, { skipFull: false });
                 if (stale) return done('');
                 badgeBigsByTens();
-                return done(`And ${n} more ten${n > 1 ? 's' : ''}!`);
+                // Tail stays silent: the merges popping on stage carry this
+                // beat, and the finale speaks on the next tap.
+                return done('');
             }
             if (anim.mode === 'mixed') {
                 // Group B = SECOND operand, whatever it is.
@@ -329,10 +339,12 @@
                 stageEl.appendChild(g);
                 if (isTensVal(second)) {
                     const n = Math.round(second / 10);
+                    say(`More tens!`);
                     const stale = await buildTens(row, n, emoji, 'gb', token, { skipFull: false });
                     if (stale) return done('');
                     badgeBigsByTens();
-                    return done(`And ${n} tens!`);
+                    // Silent tail (see tens step 2): visuals carry the beat.
+                    return done('');
                 }
                 const r = await popSmalls(row, second, emoji, 'gb', token);
                 ones = ones.concat(r.items);

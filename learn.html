@@ -612,6 +612,9 @@
             display: flex;
             flex-wrap: wrap;
             align-items: center;
+            /* Pack rows from the top: with the reserved min-height, growth
+               extends downward only, so the question never drifts. */
+            align-content: flex-start;
             justify-content: center;
             column-gap: 22px;
             row-gap: 4px;
@@ -634,6 +637,15 @@
         body.popup .anim-caption {
             flex: 1 1 100%;
             min-width: 0;
+        }
+
+        /* Stable buttons: reserve the 90+9 worst case up front so the
+           card doesn't grow tap-by-tap (measured 90+9 finale = 512px
+           natural). min-height, not height — larger content still grows.
+           Scoped to animated math via .has-stage (ui.js); English keeps
+           its compact card. */
+        body.popup .question-card.has-stage {
+            min-height: 520px;
         }
 
         body.popup .question-text {

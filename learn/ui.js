@@ -150,6 +150,10 @@
         if (btn) btn.textContent = animated ? 'Show (1 of 3)' : 'Reveal Answer';
         const placeholder = document.getElementById('answerPlaceholder');
         if (placeholder) placeholder.textContent = animated ? 'Tap "Show" to count' : 'Tap "Reveal Answer"';
+        // Reserve worst-case stage height in popup so the action buttons
+        // never shift as groups pop in (see body.popup .has-stage CSS).
+        const card = document.querySelector('.question-card');
+        if (card) card.classList.toggle('has-stage', animated);
     }
 
     function applyQuestion(q) {

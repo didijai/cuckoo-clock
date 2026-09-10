@@ -6,15 +6,16 @@
  *   Tap 2 -> group B appears (counted on)
  *   Tap 3 -> groups join, total pops big
  *
- * The key beat is the TEN MERGE (unitizing): 10 small emoji squeeze into
- * a glow ring and pop out as 1 big emoji with a "10" badge. First ten of
- * a question gets the full ceremony (count 1-10); remaining tens use a
- * quick shorthand ("Another 10!") so long questions stay watchable. A
- * "10 small = 1 big" reminder chip stays visible while tens are on stage.
+ * The key beat is the TEN MERGE (unitizing): 10 loose emoji squeeze
+ * into a glow ring and pop out as one TEN-FRAME BAR holding those 10 in
+ * 2 rows x 5 slots, badged "10". First ten of a question gets the full
+ * ceremony; remaining tens use a quick shorthand so long questions stay
+ * watchable. Dots are one size everywhere — a ten is a container, never
+ * a scaled-up emoji.
  *
  * Modes (from math-level1.js `anim`):
  *   singles  {a, b}            -> a blue + b orange small items
- *   tens     {tensA, tensB}    -> tensA/10 + tensB/10 big items via merge
+ *   tens     {tensA, tensB}    -> tensA/10 + tensB/10 frame bars via merge
  *   mixed    {aVal, bVal}        -> operands in QUESTION order (one is
  *      tens, the other ones); group A renders first, group B second
  *   takeaway {a, b}            -> a items, b fly away ("bye-bye")
@@ -47,7 +48,7 @@
     let stageEl = null;
     let capEl = null;
     let mergedDemoDone = false;    // first-ten full ceremony per question
-    let bigs = [];                 // big-emoji elements in stage order
+    let bigs = [];                 // ten-frame bars in stage order
     let ones = [];                 // small one-emoji elements (mixed mode)
     let items = [];                // all small items (singles/takeaway)
 
@@ -82,11 +83,20 @@
         return s;
     }
 
-    function bigItem(emoji, groupCls, badge) {
-        const wrap = mk('span', `anim-big ${groupCls}`);
-        wrap.appendChild(mk('span', 'anim-big-e', emoji));
-        wrap.appendChild(mk('span', 'anim-badge', badge));
-        return wrap;
+    // Ten-frame bar: the merged form of 10. Two rows x five slots of
+    // the same emoji at the same dot size — a container, not a big emoji.
+    function frameItem(emoji, groupCls, badge) {
+        const frame = mk('div', `anim-frame ${groupCls}`);
+        for (let r = 0; r < 2; r++) {
+            const row = mk('div', 'anim-frow');
+            for (let i = 0; i < 5; i++) {
+                const dot = mk('span', 'anim-dot', emoji);
+                row.appendChild(dot);
+            }
+            frame.appendChild(row);
+        }
+        frame.appendChild(mk('span', 'anim-badge', badge));
+        return frame;
     }
 
     // Pop n small items into `box`, staggered. Returns the item elements.
@@ -106,18 +116,18 @@
         return { items: made, stale: false };
     }
 
-    // Merge one ten: 10 small in `unit` squeeze into a ring, then 1 big
-    // pops in `slot`. `full` = count-1-10 ceremony; else quick shorthand.
+    // Merge one ten: 10 small in `unit` squeeze into a ring, then a
+    // ten-frame bar pops in `slot` with its dots cascading in.
     async function mergeOneTen(unit, slot, emoji, groupCls, token, full) {
         unit.classList.add(full ? 'merging' : 'merging-quick');
         await sleep(full ? MERGE_FULL_MS : MERGE_QUICK_MS);
         if (token !== runToken) return { stale: true };
         unit.remove();
-        const big = bigItem(emoji, groupCls, '10');
-        slot.appendChild(big);
-        void big.offsetWidth;
-        big.classList.add('in');
-        bigs.push(big);
+        const frame = frameItem(emoji, groupCls, '10');
+        slot.appendChild(frame);
+        void frame.offsetWidth;
+        frame.classList.add('in');
+        bigs.push(frame);
         await sleep(SETTLE_MS);
         return { stale: false };
     }
@@ -139,7 +149,7 @@
                 if (m.stale) return true;
                 mergedDemoDone = true;
             } else {
-                // Shorthand: grouped flash, instant squeeze, big pops.
+                // Shorthand: grouped flash, instant squeeze, bar pops.
                 const r = await popSmalls(unit, 10, emoji, groupCls, token, 40);
                 if (r.stale) return true;
                 const m = await mergeOneTen(unit, rowEl, emoji, groupCls, token, false);
@@ -181,12 +191,18 @@
         });
     }
 
+    // Idempotent like badgeOnes: reuse the existing badge so a repeated
+    // finale (replay edge, future flows) can never stack a second one.
     function badgeSingles() {
         items.forEach((s, i) => {
-            const badge = mk('span', 'anim-minibadge', String(i + 1));
-            s.appendChild(badge);
-            void s.offsetWidth;
-            badge.classList.add('in');
+            let badge = s.querySelector(':scope > .anim-minibadge');
+            if (!badge) {
+                badge = mk('span', 'anim-minibadge', '');
+                s.appendChild(badge);
+                void s.offsetWidth;
+                badge.classList.add('in');
+            }
+            badge.textContent = String(i + 1);
         });
     }
 
@@ -202,8 +218,15 @@
 
     /* ---------------- public API ----------------------------------- */
 
+    // Modes the stepper actually implements. Anything else falls back to
+    // the instant reveal path instead of dead taps on an empty stage.
+    // (missing-add's full animation lives here — keep this list in sync
+    // when a new mode lands.)
+    const IMPLEMENTED = ['singles', 'tens', 'mixed', 'takeaway', 'missing'];
+
     function supports(q) {
-        return !!(q && q.type === 'math' && q.anim && q.anim.mode && stageEl);
+        return !!(q && q.type === 'math' && q.anim && stageEl &&
+            IMPLEMENTED.indexOf(q.anim.mode) >= 0);
     }
 
     function start(sEl, cEl) {
@@ -268,7 +291,7 @@
                 const stale = await buildTens(row, n, emoji, 'ga', token);
                 if (stale) return done('');
                 badgeBigsByTens();
-                return done(n > 0 ? `One big means 10!` : 'First group is empty!');
+                return done(n > 0 ? `One bar means 10!` : 'First group is empty!');
             }
             if (anim.mode === 'mixed') {
                 // Group A = FIRST operand, whatever it is (tens or ones).
@@ -284,7 +307,7 @@
                     const stale = await buildTens(row, n, emoji, 'ga', token);
                     if (stale) return done('');
                     badgeBigsByTens();
-                    return done(n === 1 ? `One big means 10!` : '');
+                    return done(n === 1 ? `One bar means 10!` : '');
                 }
                 const r = await popSmalls(row, first, emoji, 'ga', token);
                 ones = r.items;

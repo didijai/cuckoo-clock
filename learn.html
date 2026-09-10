@@ -434,39 +434,52 @@
             filter: grayscale(1);
         }
 
-        .anim-big {
+        /* Ten-frame bar: 2 rows x 5 slots of same-size dots. The merged
+           form of a ten — a container shape, never a scaled-up emoji. */
+        .anim-frame {
             display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
+            gap: 4px;
             position: relative;
-            width: 84px;
-            height: 84px;
-            border-radius: 50%;
+            padding: 8px;
+            border-radius: 14px;
             transform: scale(0);
             opacity: 0;
             transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s;
         }
 
-        .anim-big.in {
+        .anim-frame.in {
             transform: scale(1);
             opacity: 1;
         }
 
-        .anim-big.ga {
-            background: rgba(37, 99, 235, 0.25);
+        .anim-frame.ga {
+            background: rgba(37, 99, 235, 0.18);
             border: 3px solid #60a5fa;
             box-shadow: 0 0 16px rgba(96, 165, 250, 0.5);
         }
 
-        .anim-big.gb {
-            background: rgba(194, 65, 12, 0.3);
+        .anim-frame.gb {
+            background: rgba(194, 65, 12, 0.22);
             border: 3px solid #fb923c;
             box-shadow: 0 0 16px rgba(251, 146, 60, 0.5);
         }
 
-        .anim-big-e {
-            font-size: 52px;
+        .anim-frow {
+            display: flex;
+            gap: 4px;
+        }
+
+        .anim-dot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.35em;
+            height: 1.35em;
+            font-size: 22px;
             line-height: 1;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.12);
         }
 
         .anim-badge {
@@ -543,45 +556,8 @@
             display: none;
         }
 
-        .cap-n {
-            padding: 2px 10px;
-            border-radius: 10px;
-        }
-
-        .cap-a {
-            background: rgba(37, 99, 235, 0.3);
-            color: #bfdbfe;
-        }
-
-        .cap-b {
-            background: rgba(194, 65, 12, 0.35);
-            color: #fed7aa;
-        }
-
-        .cap-total {
-            background: rgba(22, 101, 52, 0.5);
-            color: #bbf7d0;
-            font-size: 24px;
-        }
-
-        .cap-op {
-            color: #94a3b8;
-            font-weight: 700;
-        }
-
-        .cap-hint {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            color: #fcd34d;
-            border: 1px dashed rgba(252, 211, 77, 0.6);
-            border-radius: 9999px;
-            padding: 3px 10px;
-        }
-
         @media (prefers-reduced-motion: reduce) {
-            .anim-item, .anim-big, .anim-ten {
+            .anim-item, .anim-frame, .anim-ten {
                 transition-duration: 0.01ms;
             }
             .anim-stage.finale .cheer, .anim-item.doomed {
@@ -775,21 +751,18 @@
         }
 
         /* Row capacity — guaranteed at ANY window width, not just
-           desktop: bigs always 5 per row (6th wraps to row 2), row-level
-           smalls always a single row of up to 10. Widths are row-relative
-           so narrow windows shrink items instead of reflowing the count. */
-        body.popup .anim-big {
-            width: calc((100% - 24px) / 5);
-            max-width: 112px;
-            height: auto;
-            aspect-ratio: 1 / 1;
-            flex: 0 0 auto;
+           desktop: row-level smalls always a single row of up to 10.
+           Widths are row-relative so narrow windows shrink items instead
+           of reflowing the count. Frame bars wrap naturally (~3-4/row). */
+        /* Ten-frame bars wrap ~3 per row: packed dots run smaller than
+           loose ones (already counted — now units), which keeps the
+           worst-case stage near the 577px reserve. */
+        body.popup .anim-frame {
+            padding: 6px;
         }
 
-        body.popup .anim-big-e {
-            font-size: 68px;
-            /* Box is ~20cqw wide (5 per row): 13cqw keeps glyphs clear. */
-            font-size: min(68px, 13cqw);
+        body.popup .anim-dot {
+            font-size: 22px;
         }
 
         body.popup .anim-row > .anim-item {
@@ -819,10 +792,6 @@
 
         body.popup .anim-caption {
             font-size: 26px;
-        }
-
-        body.popup .cap-total {
-            font-size: 32px;
         }
 
         body.popup .learn-action {

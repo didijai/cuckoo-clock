@@ -273,6 +273,10 @@
                 let out = '';
                 for (let i = 0; i < 3; i++) {
                     const rr = spec.r - i * 10;
+                    // Sweep 1 = clockwise on screen (SVG y-axis points
+                    // down), so left-to-right draws through the TOP: a
+                    // rainbow arch with apex at y - r. Sweep 0 would bowl
+                    // downward past the canvas (verified in-browser).
                     out += `<path d="M${num(spec.x - rr)},${num(spec.y)} A${num(rr)},${num(rr)} 0 0 1 ${num(spec.x + rr)},${num(spec.y)}" fill="none" stroke="${col(cols[i])}" stroke-width="8"/>`;
                 }
                 return out;

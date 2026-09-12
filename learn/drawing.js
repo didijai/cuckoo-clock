@@ -13,6 +13,17 @@
  * so the full-tab stage builds the correct drawing token-by-token as
  * steps are tapped. s[i] and a[i] must stay paired and same-length.
  *
+ * PENCIL RULE (colour-pencil practicality): a filled shape never sits
+ * fully inside another filled shape — pencils cannot layer big fills.
+ * Overlaps allowed: lines, dots/small details, edge touches, same-colour
+ * stacks. Fixes used below: inner detail -> outline (door, ears,
+ * windows, cheese, letter, chest, present, snow, muzzle, heart, tri),
+ * container -> outline where the outline carries the instruction
+ * (pond, leaf), or reposition to separate contact (bird at the hole rim,
+ * campfire clear of the tent) and split water around the hull.
+ * Instruction TEXT is untouched everywhere, so inside/around/outside
+ * vocabulary — the actual English lesson — stays intact.
+ *
  * Question shape (same lifecycle as other subjects via LearnCore):
  *   steps          -> ordered instructions, one per tap (usually 3)
  *   art            -> shape-spec array per step, same length as steps
@@ -68,7 +79,8 @@
             ],
             a: [
                 [{ t: 'c', c: 'blue', x: 150, y: 108, r: 36 }],
-                [{ t: 'tri', c: 'red', x: 138, y: 96, w: 24, h: 20 }],
+                // Pencil rule: outline triangle traces over the blue fill.
+                [{ t: 'tri', c: 'red', x: 138, y: 96, w: 24, h: 20, f: 0, sw: 3 }],
                 [{ t: 'star', c: 'yellow', x: 150, y: 48, r: 14 }]
             ]
         },
@@ -80,7 +92,8 @@
             ],
             a: [
                 [{ t: 'r', c: 'green', x: 96, y: 74, w: 64, h: 64 }],
-                [{ t: 'r', c: 'blue', x: 119, y: 100, w: 20, h: 38, rx: 2 }],
+                // Pencil rule: blue door traces as an outline over the fill.
+                [{ t: 'r', c: 'blue', x: 119, y: 100, w: 20, h: 38, rx: 2, f: 0, sw: 4 }],
                 [
                     { t: 'r', c: 'orange', x: 176, y: 88, w: 28, h: 28 },
                     { t: 'ln', c: 'white', x1: 176, y1: 102, x2: 204, y2: 102, w: 3 },
@@ -155,7 +168,8 @@
             ],
             a: [
                 [{ t: 'heart', c: 'orange', x: 150, y: 112, s: 6 }],
-                [{ t: 'heart', c: 'yellow', x: 150, y: 112, s: 2.4 }],
+                // Pencil rule: inner heart traces as an outline.
+                [{ t: 'heart', c: 'yellow', x: 150, y: 112, s: 2.4, f: 0, sw: 3 }],
                 [{ t: 'plus', c: 'green', x: 150, y: 34, s: 18 }]
             ]
         },
@@ -285,7 +299,10 @@
             ],
             a: [
                 [
-                    { t: 'e', c: 'brown', x: 150, y: 154, rx: 72, ry: 18 },
+                    // Pencil rule: leaf is an outline (+ vein) so the filled
+                    // caterpillar segments sit on blank paper, not on fill.
+                    { t: 'e', c: 'brown', x: 150, y: 154, rx: 72, ry: 18, f: 0, sw: 4 },
+                    { t: 'ln', c: 'brown', x1: 84, y1: 154, x2: 216, y2: 154, w: 3 },
                     { t: 'c', c: 'green', x: 100, y: 140, r: 10 },
                     { t: 'c', c: 'green', x: 120, y: 138, r: 10 },
                     { t: 'c', c: 'green', x: 140, y: 138, r: 10 },
@@ -382,7 +399,8 @@
                     { t: 'c', c: 'brown', x: 150, y: 88, r: 22 },
                     { t: 'c', c: 'brown', x: 131, y: 70, r: 8 },
                     { t: 'c', c: 'brown', x: 169, y: 70, r: 8 },
-                    { t: 'e', c: 'tan', x: 150, y: 94, rx: 10, ry: 8 }
+                    // Pencil rule: light muzzle traces over the brown head.
+                    { t: 'e', c: 'tan', x: 150, y: 94, rx: 10, ry: 8, f: 0, sw: 2 }
                 ],
                 [
                     { t: 'tri', c: 'red', x: 126, y: 108, w: 14, h: 12, d: 'left' },
@@ -429,9 +447,10 @@
                 [{ t: 'tri', c: 'green', x: 110, y: 60, w: 80, h: 96, d: 'down' }],
                 [{ t: 'dots', c: 'red', p: [[135, 92, 6], [165, 92, 6], [143, 118, 6], [157, 118, 6]] }],
                 [
-                    { t: 'tri', c: 'yellow', x: 116, y: 132, w: 16, h: 14 },
-                    { t: 'tri', c: 'yellow', x: 158, y: 132, w: 16, h: 14 },
-                    { t: 'tri', c: 'yellow', x: 137, y: 142, w: 16, h: 14 }
+                    // Pencil rule: cheese traces as outlines over the pizza.
+                    { t: 'tri', c: 'yellow', x: 116, y: 132, w: 16, h: 14, f: 0, sw: 3 },
+                    { t: 'tri', c: 'yellow', x: 158, y: 132, w: 16, h: 14, f: 0, sw: 3 },
+                    { t: 'tri', c: 'yellow', x: 137, y: 142, w: 16, h: 14, f: 0, sw: 3 }
                 ]
             ]
         },
@@ -443,7 +462,11 @@
             ],
             a: [
                 [
-                    { t: 'r', c: 'blue', x: 30, y: 150, w: 240, h: 34, rx: 6 },
+                    // Pencil rule: water splits around the hull (left, right,
+                    // below) so the filled boat never sits on blue fill.
+                    { t: 'r', c: 'blue', x: 30, y: 150, w: 76, h: 34, rx: 6 },
+                    { t: 'r', c: 'blue', x: 194, y: 150, w: 76, h: 34, rx: 6 },
+                    { t: 'r', c: 'blue', x: 30, y: 178, w: 240, h: 10 },
                     { t: 'poly', c: 'orange', p: [[110, 150], [190, 150], [174, 178], [126, 178]] }
                 ],
                 [
@@ -470,8 +493,11 @@
                     { t: 'ln', c: 'grey', x1: 162, y1: 164, x2: 162, y2: 192, w: 6 }
                 ],
                 [
-                    { t: 'r', c: 'yellow', x: 128, y: 92, w: 44, h: 20 },
-                    { t: 'ln', c: 'brown', x1: 128, y1: 112, x2: 172, y2: 112, w: 3 }
+                    // Pencil rule: envelope traces as an outline (+ flap)
+                    // over the roof fill instead of covering it.
+                    { t: 'r', c: 'yellow', x: 128, y: 92, w: 44, h: 20, f: 0, sw: 4 },
+                    { t: 'ln', c: 'brown', x1: 128, y1: 92, x2: 150, y2: 104, w: 3 },
+                    { t: 'ln', c: 'brown', x1: 172, y1: 92, x2: 150, y2: 104, w: 3 }
                 ],
                 [{ t: 'bird', c: 'blue', x: 150, y: 76, s: 0.9 }]
             ]
@@ -511,7 +537,9 @@
                 'Draw three green plants on the edge of the pond.'
             ],
             a: [
-                [{ t: 'e', c: 'blue', x: 150, y: 122, rx: 82, ry: 40 }],
+                // Pencil rule: pond is an outline so the filled ducks swim
+                // on blank paper, not on blue fill.
+                [{ t: 'e', c: 'blue', x: 150, y: 122, rx: 82, ry: 40, f: 0, sw: 5 }],
                 [
                     { t: 'bird', c: 'yellow', x: 122, y: 116, s: 0.8 },
                     { t: 'bird', c: 'yellow', x: 178, y: 126, s: 0.8 }
@@ -537,7 +565,9 @@
             ],
             a: [
                 [{ t: 'tri', c: 'brown', x: 75, y: 45, w: 150, h: 135 }],
-                [{ t: 'tri', c: 'white', x: 128, y: 45, w: 44, h: 40 }],
+                // Pencil rule: snow traces as an outline (white cannot cover
+                // brown with pencils; on paper the peak stays blank).
+                [{ t: 'tri', c: 'white', x: 128, y: 45, w: 44, h: 40, f: 0, sw: 4 }],
                 [{ t: 'tree', x: 66, y: 190, s: 0.7 }]
             ]
         },
@@ -553,8 +583,9 @@
                     { t: 'c', c: 'grey', x: 202, y: 100, r: 26 }
                 ],
                 [
-                    { t: 'c', c: 'blue', x: 190, y: 82, r: 13 },
-                    { t: 'c', c: 'blue', x: 214, y: 76, r: 13 }
+                    // Pencil rule: ears trace as outlines over the head.
+                    { t: 'ring', c: 'blue', x: 190, y: 82, r: 13, w: 4 },
+                    { t: 'ring', c: 'blue', x: 214, y: 76, r: 13, w: 4 }
                 ],
                 [
                     { t: 'ln', c: 'grey', x1: 216, y1: 120, x2: 226, y2: 148, w: 10 },
@@ -645,7 +676,9 @@
                     { t: 'tri', c: 'darkbrown', x: 112, y: 22, w: 76, h: 28 },
                     { t: 'c', c: 'black', x: 150, y: 74, r: 10 }
                 ],
-                [{ t: 'bird', c: 'yellow', x: 148, y: 74, s: 0.8 }],
+                // Pencil rule: bird perches at the hole's rim (small touch)
+                // instead of covering the black hole with yellow fill.
+                [{ t: 'bird', c: 'yellow', x: 148, y: 62, s: 0.8 }],
                 [
                     { t: 'c', c: 'red', x: 208, y: 42, r: 5 },
                     { t: 'c', c: 'red', x: 218, y: 42, r: 5 },
@@ -828,9 +861,11 @@
                     { t: 'c', c: 'grey', x: 198, y: 174, r: 6 }
                 ],
                 [
-                    { t: 'r', c: 'blue', x: 88, y: 120, w: 36, h: 26 },
-                    { t: 'r', c: 'blue', x: 132, y: 120, w: 36, h: 26 },
-                    { t: 'r', c: 'blue', x: 176, y: 120, w: 36, h: 26 }
+                    // Pencil rule: bus windows are glass — outlines trace
+                    // over the yellow body instead of covering it.
+                    { t: 'r', c: 'blue', x: 88, y: 120, w: 36, h: 26, f: 0, sw: 4 },
+                    { t: 'r', c: 'blue', x: 132, y: 120, w: 36, h: 26, f: 0, sw: 4 },
+                    { t: 'r', c: 'blue', x: 176, y: 120, w: 36, h: 26, f: 0, sw: 4 }
                 ],
                 [
                     { t: 'c', c: 'peach', x: 194, y: 133, r: 10 },
@@ -916,10 +951,13 @@
                     { t: 'tri', c: 'darkbrown', x: 132, y: 132, w: 36, h: 52 }
                 ],
                 [
-                    { t: 'ln', c: 'brown', x1: 122, y1: 178, x2: 172, y2: 170, w: 6 },
-                    { t: 'ln', c: 'brown', x1: 122, y1: 170, x2: 172, y2: 178, w: 6 },
-                    { t: 'tri', c: 'orange', x: 137, y: 138, w: 26, h: 36 },
-                    { t: 'tri', c: 'yellow', x: 143, y: 150, w: 14, h: 22 }
+                    // Pencil rule: campfire sits front-LEFT on clear grass so
+                    // the flames never cover the red tent fill (still "in
+                    // front of the tent"; lantern keeps the right side).
+                    { t: 'ln', c: 'brown', x1: 62, y1: 180, x2: 100, y2: 172, w: 6 },
+                    { t: 'ln', c: 'brown', x1: 62, y1: 172, x2: 100, y2: 180, w: 6 },
+                    { t: 'tri', c: 'orange', x: 70, y: 140, w: 26, h: 36 },
+                    { t: 'tri', c: 'yellow', x: 76, y: 152, w: 14, h: 22 }
                 ],
                 [
                     { t: 'r', c: 'black', x: 208, y: 150, w: 22, h: 30, rx: 4 },
@@ -966,8 +1004,10 @@
                     { t: 'ln', c: 'red', x1: 148, y1: 96, x2: 118, y2: 126, w: 7 }
                 ],
                 [
-                    { t: 'r', c: 'brown', x: 168, y: 118, w: 44, h: 30, rx: 3 },
-                    { t: 'r', c: 'darkbrown', x: 168, y: 106, w: 44, h: 16, rx: 6 },
+                    // Pencil rule: chest traces as an outline over the island
+                    // instead of covering the green fill (kid colours it in).
+                    { t: 'r', c: 'brown', x: 168, y: 118, w: 44, h: 30, rx: 3, f: 0, sw: 4 },
+                    { t: 'r', c: 'darkbrown', x: 168, y: 106, w: 44, h: 16, rx: 6, f: 0, sw: 4 },
                     { t: 'ln', c: 'gold', x1: 190, y1: 106, x2: 190, y2: 148, w: 4 },
                     { t: 'c', c: 'gold', x: 190, y: 130, r: 5 }
                 ],
@@ -988,7 +1028,9 @@
             a: [
                 [{ t: 'r', c: 'green', x: 75, y: 135, w: 150, h: 52, rx: 4 }],
                 [
-                    { t: 'r', c: 'blue', x: 122, y: 99, w: 44, h: 36 },
+                    // Pencil rule: gift box traces as an outline over the
+                    // green cloth instead of covering it.
+                    { t: 'r', c: 'blue', x: 122, y: 99, w: 44, h: 36, f: 0, sw: 4 },
                     { t: 'ln', c: 'red', x1: 144, y1: 99, x2: 144, y2: 135, w: 4 },
                     { t: 'ln', c: 'red', x1: 122, y1: 117, x2: 166, y2: 117, w: 4 },
                     { t: 'tri', c: 'red', x: 130, y: 84, w: 12, h: 14, d: 'left' },

@@ -250,8 +250,14 @@
                 return `<polygon points="${spec.p.map((pt) => num(pt[0]) + ',' + num(pt[1])).join(' ')}" ${fillAttrs(spec.c)}/>`;
             case 'star':
                 return `<polygon points="${starPoints(spec.x, spec.y, spec.r)}" ${fillAttrs(spec.c)}/>`;
-            case 'heart':
-                return `<path d="M6 10.5C6 10.5 0.5 6.8 0.5 3.6 0.5 1.7 2 0.3 3.8 0.3 5 0.3 5.7 1 6 1.7 6.3 1 7 0.3 8.2 0.3 10 0.3 11.5 1.7 11.5 3.6 11.5 6.8 6 10.5 6 10.5Z" transform="translate(${num(spec.x - 6 * spec.s)} ${num(spec.y - 5.5 * spec.s)}) scale(${spec.s})" ${fillAttrs(spec.c)}/>`;
+            case 'heart': {
+                const hd = 'M6 10.5C6 10.5 0.5 6.8 0.5 3.6 0.5 1.7 2 0.3 3.8 0.3 5 0.3 5.7 1 6 1.7 6.3 1 7 0.3 8.2 0.3 10 0.3 11.5 1.7 11.5 3.6 11.5 6.8 6 10.5 6 10.5Z';
+                const htr = `translate(${num(spec.x - 6 * spec.s)} ${num(spec.y - 5.5 * spec.s)}) scale(${spec.s})`;
+                if (spec.f === 0) {
+                    return `<path d="${hd}" transform="${htr}" fill="none" stroke="${col(spec.c)}" stroke-width="${spec.sw || 3}"/>`;
+                }
+                return `<path d="${hd}" transform="${htr}" ${fillAttrs(spec.c)}/>`;
+            }
             case 'plus': {
                 const s = spec.s, w = s * 0.34;
                 return `<rect x="${num(spec.x - s / 2)}" y="${num(spec.y - w / 2)}" width="${num(s)}" height="${num(w)}" ${fillAttrs(spec.c)}/>` +

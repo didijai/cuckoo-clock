@@ -556,11 +556,55 @@
             display: none;
         }
 
+        /* ----- Drawing answer stage (full-tab mode only) -----
+           The correct drawing builds up step-by-step as steps are
+           tapped: draw-art.js renders one shape group per finished step
+           into a single SVG picture. Docked mode never shows it — ui.js
+           keeps it hidden there so the panel stays text-only and
+           glanceable. */
+        .draw-stage {
+            width: 100%;
+            padding: 10px 2px 2px;
+        }
+
+        .draw-stage[hidden] {
+            display: none;
+        }
+
+        .draw-stage svg {
+            width: 100%;
+            max-width: 440px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Newest step-group pops in; the finale cheers every group.
+           transform-box keeps the scale centred on each group's own art. */
+        .dart-step {
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        .dart-step.pop {
+            animation: dart-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes dart-pop {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .draw-stage .dart-step.cheer {
+            animation: anim-cheer 0.55s ease-in-out 2;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .anim-item, .anim-frame, .anim-ten {
                 transition-duration: 0.01ms;
             }
-            .anim-stage.finale .cheer, .anim-item.doomed {
+            .anim-stage.finale .cheer, .anim-item.doomed,
+            .dart-step.pop, .draw-stage .dart-step.cheer {
                 animation: none;
             }
         }
@@ -711,9 +755,25 @@
         }
 
         body.popup .anim-stage,
-        body.popup .anim-caption {
+        body.popup .anim-caption,
+        body.popup .draw-stage {
             flex: 1 1 100%;
             min-width: 0;
+        }
+
+        /* Drawing art is the hero in full-tab mode: room for the full
+           300x220 picture as steps are tapped. */
+        body.popup .draw-stage svg {
+            max-width: 520px;
+        }
+
+        /* Pen-on-paper stability: instructions vary in length per step,
+           so reserve three lines of text — the paper below never slides
+           between taps. The fixed viewBox keeps every inked stroke at
+           its exact spot; only a window resize rescales the paper
+           (uniformly, positions preserved). */
+        body.popup .question-card.has-draw .question-text {
+            min-height: 3.4em;
         }
 
         /* Stable buttons: reserve the 80+10 worst case up front so the
@@ -856,6 +916,11 @@
                      until the first stepper tap; docked mode never shows it. -->
                 <div class="anim-stage" id="answerAnim" hidden></div>
                 <div class="anim-caption" id="answerAnimCap" hidden></div>
+                <!-- Drawing answer art: the correct drawing for the steps
+                     tapped so far (full-tab mode only — ui.js hides it in
+                     the docked panel). Sibling of the answer row so it
+                     never stretches the question line. -->
+                <div class="draw-stage" id="drawStage" hidden></div>
             </div>
 
             <!-- Reveal + New Question -->
@@ -882,12 +947,14 @@
          core.js: registry + 1-hour cache + question lifecycle.
          math.js / english.js / drawing.js: subject generators (one file
          per subject, categories inside — no longer organized by level).
+         draw-art.js: SVG line-drawing renderer for the drawing game.
          math-anim.js: Math answer stepper (3-tap + ten-merge).
          ui.js: rendering + TTS wiring + controls + boot. -->
     <script src="learn/core.js"></script>
     <script src="learn/math.js"></script>
     <script src="learn/english.js"></script>
     <script src="learn/drawing.js"></script>
+    <script src="learn/draw-art.js"></script>
     <script src="learn/math-anim.js"></script>
     <script src="learn/ui.js"></script>
 </body>

@@ -167,13 +167,42 @@
             answerSentence.style.display = 'none';
         }
         if (placeholder) placeholder.hidden = true;
+        // The answer row is meaningless in drawing mode (steps ARE the
+        // content) — remove it entirely so the flex-wrap card can never
+        // reflow around it mid-stepper (a short line shares the row, a
+        // long line wraps it below, and the stage jumps ~80px).
+        const answerArea = document.getElementById('answerArea');
+        if (answerArea) answerArea.style.display = 'none';
         if (btn) {
             btn.textContent = drawDone
                 ? 'Replay'
                 : (drawStep < steps.length - 1 ? `Next (${drawStep + 2} of ${steps.length})` : 'Finish');
         }
         const card = document.querySelector('.question-card');
-        if (card) card.classList.remove('has-stage');
+        if (card) {
+            card.classList.remove('has-stage');
+            // Marks drawing mode so the instruction text area keeps a
+            // reserved height — the paper below never slides between taps.
+            card.classList.add('has-draw');
+        }
+        // Correct-drawing stage (full-tab mode only): the line drawing
+        // for every tapped step accumulates into one picture, exactly as
+        // instructed. Docked mode stays text-only and glanceable.
+        const stage = document.getElementById('drawStage');
+        if (stage) {
+            if (!POPUP || !window.LearnDrawArt) {
+                stage.hidden = true;
+                stage.innerHTML = '';
+            } else {
+                stage.hidden = false;
+                const shown = drawDone ? steps.length : drawStep + 1;
+                const groups = [];
+                for (let i = 0; i < shown; i++) {
+                    if (q.art && q.art[i]) groups.push(q.art[i]);
+                }
+                window.LearnDrawArt.render(stage, groups, { finale: drawDone });
+            }
+        }
     }
 
     function animStageEls() {
@@ -248,11 +277,21 @@
         animBusy = false;
         resetAnimFor(q);
 
-        // New drawing = stepper restarts from step 1 (spoken on demand
-        // by New Question / card tap, same as other subjects).
+        // New drawing = fresh paper + stepper restarts from step 1
+        // (spoken on demand by New Question / card tap, same as other
+        // subjects). The paper is cleared ONLY here — never between
+        // steps, so inked strokes keep their exact positions.
+        const freshCard = document.querySelector('.question-card');
+        if (freshCard) freshCard.classList.remove('has-draw');
+        // Restore the answer row for non-drawing questions (drawing
+        // mode hides it — see renderDrawStep).
+        const freshAnswer = document.getElementById('answerArea');
+        if (freshAnswer) freshAnswer.style.display = '';
         if (isDrawing(q)) {
             drawStep = 0;
             drawDone = false;
+            const st = document.getElementById('drawStage');
+            if (st && window.LearnDrawArt) window.LearnDrawArt.clear(st);
             renderDrawStep(q);
         }
 
@@ -501,8 +540,11 @@
                 if (isDrawing(q)) {
                     const steps = q.steps;
                     if (drawDone) {
+                        // Replay = fresh paper, ink step 1 again.
                         drawDone = false;
                         drawStep = 0;
+                        const rst = document.getElementById('drawStage');
+                        if (rst && window.LearnDrawArt) window.LearnDrawArt.clear(rst);
                         renderDrawStep(q);
                         speakWith(steps[0]);
                         return;

@@ -8,11 +8,12 @@
  *                         category).
  *   english.js         -> registers the English generator (K3 stories).
  *   drawing.js         -> registers the four drawing-game generators
- *                         (listen-and-draw step instructions).
+ *                         (listen-and-draw step instructions + answer art).
+ *   draw-art.js        -> SVG line-drawing renderer for the art specs.
  *   ui.js              -> rendering, TTS wiring, controls, boot.
  *
  * Load order in learn.html: tts.js, core.js, math.js,
- * english.js, drawing.js, ui.js. No build step — plain classic scripts sharing
+ * english.js, drawing.js, draw-art.js, ui.js. No build step — plain classic scripts sharing
  * the `window.LearnCore` namespace so the panel stays iframe-self-contained.
  * Adding a new subject/category = add one generator file + REGISTRY entries.
  * ========================================================================== */

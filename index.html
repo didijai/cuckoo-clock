@@ -67,9 +67,10 @@
 
             <!-- Dev shortcut: cache-busting reload (upper-right). Browsers
                  ignore the old location.reload(true) force flag, so this
-                 primes same-origin scripts/styles with a cache-'reload'
-                 fetch, then navigates with a timestamp param — fresh HTML
-                 + JS after edits, no stale files. -->
+                 primes same-origin scripts/styles (INCLUDING inside the
+                 Learn + Media iframes) with a cache-'reload' fetch, then
+                 navigates with a timestamp param — fresh HTML + JS after
+                 edits, no stale files. -->
             <button id="hardReloadBtn" title="Reload with fresh files (bypass cache)"
                 class="p-2.5 sm:p-3 bg-transparent hover:bg-amber-600/20 active:scale-95 text-amber-400/70 hover:text-amber-300 font-bold rounded-2xl transition-all border border-amber-600/30 flex items-center justify-center">
                 <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1073,13 +1074,26 @@
             const btn = e.currentTarget;
             btn.classList.add('animate-spin');
             try {
-                const urls = [...document.querySelectorAll('script[src], link[rel="stylesheet"]')]
+                const own = location.origin;
+                const collect = (root) => [...root.querySelectorAll('script[src], link[rel="stylesheet"]')]
                     .map((el) => el.src || el.href)
                     .filter((u) => {
-                        try { return new URL(u, location.href).origin === location.origin; }
+                        try { return new URL(u, location.href).origin === own; }
                         catch (err) { return false; }
                     });
-                await Promise.allSettled(urls.map((u) => fetch(u, { cache: 'reload' })));
+                let urls = collect(document);
+                // Same-origin frames (Learn panel, Media gallery): without
+                // this their documents + scripts survive on heuristic cache
+                // and the button would only refresh the outer page.
+                document.querySelectorAll('iframe').forEach((f) => {
+                    try {
+                        if (f.contentDocument) urls = urls.concat(collect(f.contentDocument));
+                    } catch (err) { /* cross-origin frame: skip */ }
+                    try {
+                        if (f.getAttribute('src') && new URL(f.src).origin === own) urls.push(f.src);
+                    } catch (err) { /* unparseable src: skip */ }
+                });
+                await Promise.allSettled([...new Set(urls)].map((u) => fetch(u, { cache: 'reload' })));
             } catch (err) { /* offline etc.: the navigation below still runs */ }
             const u = new URL(location.href);
             u.searchParams.set('t', Date.now());

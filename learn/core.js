@@ -4,15 +4,15 @@
  * Part of the modular Learn panel (see learn/ folder):
  *   core.js            -> this file: REGISTRY, selection state, 1-hour
  *                         localStorage cache, generator registry.
- *   math-level1.js     -> registers the five Math generators (one per
+ *   math.js            -> registers the five Math generators (one per
  *                         category).
- *   english-level1.js  -> registers English Level 1 generator (K3 stories).
+ *   english.js         -> registers the English generator (K3 stories).
  *   ui.js              -> rendering, TTS wiring, controls, boot.
  *
- * Load order in learn.html: tts.js, core.js, math-level1.js,
- * english-level1.js, ui.js. No build step — plain classic scripts sharing
+ * Load order in learn.html: tts.js, core.js, math.js,
+ * english.js, ui.js. No build step — plain classic scripts sharing
  * the `window.LearnCore` namespace so the panel stays iframe-self-contained.
- * Adding a new subject/level = add one generator file + REGISTRY entries.
+ * Adding a new subject/category = add one generator file + REGISTRY entries.
  * ========================================================================== */
 
 (function () {
@@ -41,7 +41,7 @@
             label: 'English',
             enabled: true,
             categories: {
-                level1: { label: 'Level 1', enabled: true }
+                'word-problems': { label: 'Word Problems', enabled: true }
             }
         },
         chinese: { label: 'Chinese', enabled: false },
@@ -87,8 +87,11 @@
         }
     }
 
-    // selectedCats: { math: ['within10', ...], english: ['level1'] }.
+    // selectedCats: { math: ['within10', ...], english: ['word-problems'] }.
     // Unknown/retired keys are dropped; empty sets reset to all-enabled.
+    // (Renamed categories — e.g. english 'level1' -> 'word-problems' —
+    // safely fall through here: old stored keys are dropped and the set
+    // resets to all-enabled, and old cache entries simply miss.)
     let selectedCats = (function initCats() {
         const stored = readStoredCats() || {};
         const out = {};

@@ -9,7 +9,7 @@
 
     <!-- The Learn module is kept fully self-contained: it owns its own
          layout, selection UI and question logic (see learn/ folder:
-         core.js + math-level1.js + english-level1.js + ui.js). The parent
+         core.js + math.js + english.js + ui.js). The parent
          clock page only shows/hides this iframe and reserves screen space.
          Using the same fonts/CDN as the parent so it looks native. -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;600;700&display=swap"
@@ -814,7 +814,7 @@
             </div>
             <div class="learn-header-text">
                 <span class="learn-header-title">Learn Panel</span>
-                <span class="learn-header-subtitle" id="learnSubtitle">Math · Level 1</span>
+                <span class="learn-header-subtitle" id="learnSubtitle">Math · All</span>
             </div>
         </div>
 
@@ -880,12 +880,13 @@
 
     <!-- Modular Learn logic (order matters: core first, ui last).
          core.js: registry + 1-hour cache + question lifecycle.
-         math-level1.js / english-level1.js: subject generators.
-         math-anim.js: Math Level 1 answer stepper (3-tap + ten-merge).
+         math.js / english.js: subject generators (one file per subject,
+         categories inside — no longer organized by level).
+         math-anim.js: Math answer stepper (3-tap + ten-merge).
          ui.js: rendering + TTS wiring + controls + boot. -->
     <script src="learn/core.js"></script>
-    <script src="learn/math-level1.js"></script>
-    <script src="learn/english-level1.js"></script>
+    <script src="learn/math.js"></script>
+    <script src="learn/english.js"></script>
     <script src="learn/math-anim.js"></script>
     <script src="learn/ui.js"></script>
 </body>

@@ -5,7 +5,7 @@
  * generator owns its `text / answer / prompt / spokenQuestion /
  * spokenAnswer / display`, and this file only renders + speaks them.
  *
- * Behaviour (identical for every Level 1 subject):
+ * Behaviour (identical for every subject):
  *   - Question card click / New Question -> speak the QUESTION only.
  *   - Reveal Answer -> show the answer (+ full sentence for stories)
  *     and speak the ANSWER.
@@ -376,7 +376,7 @@
         if (revealBtn) {
             revealBtn.addEventListener('click', async () => {
                 const q = Core.currentQuestion;
-                // Animated path: Math Level 1 with an anim spec steps
+                // Animated path: Math with an anim spec steps
                 // 1 (group A) -> 2 (group B) -> 3 (altogether) -> replay.
                 if (useAnim(q)) {
                     if (animBusy) return;

@@ -1,8 +1,8 @@
 /* ==========================================================================
- * English Level 1 generator — very easy K3 word problems.
+ * English generator — very easy K3 word problems.
  *
- * Mirrors Math Level 1 difficulty (totals <= 10, subtraction never
- * negative) so both Level 1 subjects feel the same. Each call picks one
+ * Mirrors Math difficulty (totals <= 10, subtraction never
+ * negative) so both subjects feel the same. Each call picks one
  * of 10 story templates at random: 5 addition + 5 subtraction.
  *
  * Question shape (same lifecycle as Math via LearnCore):
@@ -242,16 +242,16 @@
         };
     }
 
-    function generateEnglishLevel1() {
+    function generateWordProblems() {
         const isAdd = Math.random() < 0.5;
         let a, b;
 
         if (isAdd) {
-            // Same bound as Math L1 case 1: both parts small, total <= 10.
+            // Same bound as Math within10: both parts small, total <= 10.
             a = randInt(1, 9);
             b = randInt(1, 10 - a);
         } else {
-            // Same bound as Math L1 subtraction: a 1..10, b <= a.
+            // Same bound as Math takeaway: a 1..10, b <= a.
             a = randInt(2, 10);
             b = randInt(1, a);
         }
@@ -272,7 +272,7 @@
 
         return {
             type: 'english',
-            category: 'level1',
+            category: 'word-problems',
             display: 'story',
             kind: isAdd ? 'add' : 'subtract',
             text,
@@ -288,6 +288,6 @@
     }
 
     if (window.LearnCore) {
-        window.LearnCore.registerGenerator('english', 'level1', generateEnglishLevel1);
+        window.LearnCore.registerGenerator('english', 'word-problems', generateWordProblems);
     }
 })();

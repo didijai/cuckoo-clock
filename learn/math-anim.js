@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Math Animation — 3-tap reveal stepper for Math Level 1 (preschool).
+ * Math Animation — 3-tap reveal stepper for Math (preschool).
  *
  * Rule: never flash the total; always count into it.
  *   Tap 1 -> group A appears (counted aloud)
@@ -13,7 +13,7 @@
  * watchable. Dots are one size everywhere — a ten is a container, never
  * a scaled-up emoji.
  *
- * Modes (from math-level1.js `anim`):
+ * Modes (from math.js `anim`):
  *   singles  {a, b}            -> a blue + b orange small items
  *   tens     {tensA, tensB}    -> tensA/10 + tensB/10 frame bars via merge
  *   mixed    {aVal, bVal}        -> operands in QUESTION order (one is

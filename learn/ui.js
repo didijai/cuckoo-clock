@@ -133,6 +133,49 @@
     let animStep = 0;
     let animBusy = false;
 
+    // Drawing stepper state: one instruction per tap, then praise + replay.
+    let drawStep = 0;
+    let drawDone = false;
+
+    function isDrawing(q) {
+        return !!(q && q.display === 'drawing' && Array.isArray(q.steps) && q.steps.length);
+    }
+
+    // Show the current drawing step as the card text with a "Step X of N"
+    // prompt, and relabel the Reveal button Next / Finish / Replay.
+    // Answer elements stay hidden — the steps ARE the content.
+    function renderDrawStep(q) {
+        const steps = q.steps;
+        const questionText = document.getElementById('questionText');
+        const answerText = document.getElementById('answerText');
+        const answerSentence = document.getElementById('answerSentence');
+        const placeholder = document.getElementById('answerPlaceholder');
+        const questionPrompt = document.getElementById('questionPrompt');
+        const { btn } = animStageEls();
+        if (questionText) {
+            questionText.textContent = drawDone ? (q.praise || 'Well done!') : steps[drawStep];
+            questionText.classList.add('story');
+        }
+        if (questionPrompt) {
+            questionPrompt.textContent = drawDone
+                ? 'Well done!'
+                : `${q.prompt || 'Listen and draw'} · Step ${drawStep + 1} of ${steps.length}`;
+        }
+        if (answerText) answerText.hidden = true;
+        if (answerSentence) {
+            answerSentence.hidden = true;
+            answerSentence.style.display = 'none';
+        }
+        if (placeholder) placeholder.hidden = true;
+        if (btn) {
+            btn.textContent = drawDone
+                ? 'Replay'
+                : (drawStep < steps.length - 1 ? `Next (${drawStep + 2} of ${steps.length})` : 'Finish');
+        }
+        const card = document.querySelector('.question-card');
+        if (card) card.classList.remove('has-stage');
+    }
+
     function animStageEls() {
         return {
             stage: document.getElementById('answerAnim'),
@@ -205,6 +248,14 @@
         animBusy = false;
         resetAnimFor(q);
 
+        // New drawing = stepper restarts from step 1 (spoken on demand
+        // by New Question / card tap, same as other subjects).
+        if (isDrawing(q)) {
+            drawStep = 0;
+            drawDone = false;
+            renderDrawStep(q);
+        }
+
         // Keep the header subtitle in sync with the multi-select, e.g.
         // "Math · All" or "Math · Tens + Ones +1".
         if (subtitle) {
@@ -274,6 +325,11 @@
     function speakQuestion() {
         const q = Core.currentQuestion;
         if (!q) return;
+        // Drawing: re-read the CURRENT step (card tap never advances).
+        if (isDrawing(q)) {
+            speakWith(drawDone ? (q.praise || 'Great drawing! Well done!') : q.steps[drawStep]);
+            return;
+        }
         if (q.spokenQuestion) {
             speakWith(q.spokenQuestion);
             return;
@@ -438,6 +494,28 @@
                     showAnimNumeral(q, step);
                     if (step >= 3) revealBtn.textContent = 'Replay';
                     animBusy = false;
+                    return;
+                }
+                // Drawing path: one instruction per tap — show + speak
+                // each step, praise at the end, then offer a replay.
+                if (isDrawing(q)) {
+                    const steps = q.steps;
+                    if (drawDone) {
+                        drawDone = false;
+                        drawStep = 0;
+                        renderDrawStep(q);
+                        speakWith(steps[0]);
+                        return;
+                    }
+                    if (drawStep < steps.length - 1) {
+                        drawStep += 1;
+                        renderDrawStep(q);
+                        speakWith(steps[drawStep]);
+                        return;
+                    }
+                    drawDone = true;
+                    renderDrawStep(q);
+                    speakWith(q.praise || 'Great drawing! Well done!');
                     return;
                 }
                 // Instant path (English stories + anything without anim).

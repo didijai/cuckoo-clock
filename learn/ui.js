@@ -134,8 +134,13 @@
     let animBusy = false;
 
     // Drawing stepper state: one instruction per tap, then praise + replay.
+    // drawRevealed gates the CURRENT step's answer art — a fresh question
+    // shows the step-1 instruction (the question) with a blank paper; the
+    // art (the answer) only inks on the first tap, like the math stage
+    // staying hidden until tap 1.
     let drawStep = 0;
     let drawDone = false;
+    let drawRevealed = false;
 
     function isDrawing(q) {
         return !!(q && q.display === 'drawing' && Array.isArray(q.steps) && q.steps.length);
@@ -176,7 +181,8 @@
         if (btn) {
             btn.textContent = drawDone
                 ? 'Replay'
-                : (drawStep < steps.length - 1 ? `Next (${drawStep + 2} of ${steps.length})` : 'Finish');
+                : (!drawRevealed ? 'Show'
+                    : (drawStep < steps.length - 1 ? `Next (${drawStep + 2} of ${steps.length})` : 'Finish'));
         }
         const card = document.querySelector('.question-card');
         if (card) {
@@ -195,7 +201,9 @@
                 stage.innerHTML = '';
             } else {
                 stage.hidden = false;
-                const shown = drawDone ? steps.length : drawStep + 1;
+                // Unrevealed current step contributes no art: fresh step 1
+                // renders a blank paper (same reserved space, no shifting).
+                const shown = drawDone ? steps.length : (drawRevealed ? drawStep + 1 : drawStep);
                 const groups = [];
                 for (let i = 0; i < shown; i++) {
                     if (q.art && q.art[i]) groups.push(q.art[i]);
@@ -290,6 +298,7 @@
         if (isDrawing(q)) {
             drawStep = 0;
             drawDone = false;
+            drawRevealed = false;
             const st = document.getElementById('drawStage');
             if (st && window.LearnDrawArt) window.LearnDrawArt.clear(st);
             renderDrawStep(q);
@@ -540,13 +549,21 @@
                 if (isDrawing(q)) {
                     const steps = q.steps;
                     if (drawDone) {
-                        // Replay = fresh paper, ink step 1 again.
+                        // Replay = fresh paper, step 1 asked again (art hidden).
                         drawDone = false;
                         drawStep = 0;
+                        drawRevealed = false;
                         const rst = document.getElementById('drawStage');
                         if (rst && window.LearnDrawArt) window.LearnDrawArt.clear(rst);
                         renderDrawStep(q);
                         speakWith(steps[0]);
+                        return;
+                    }
+                    if (!drawRevealed) {
+                        // First tap reveals the current step's answer art.
+                        drawRevealed = true;
+                        renderDrawStep(q);
+                        speakWith(steps[drawStep]);
                         return;
                     }
                     if (drawStep < steps.length - 1) {

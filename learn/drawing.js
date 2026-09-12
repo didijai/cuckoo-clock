@@ -19,6 +19,7 @@
  *   text           -> first step (fallback for generic renderers)
  *   prompt         -> owned here so ui.js never hard-codes wording
  *   spokenQuestion -> first step (ui.js speaks the CURRENT step instead)
+ *   reveals        -> short check-in line per step, spoken on reveal taps
  *   praise         -> spoken once when the last step is finished
  *   display: 'drawing' (ui.js steps through one instruction at a time),
  *   kind: 'draw'.
@@ -36,6 +37,26 @@
         'Amazing! You did it!',
         'Wonderful drawing! High five!'
     ];
+
+    // Short check-in lines spoken when a step's art is revealed — one per
+    // step, shuffled per question. Deliberately NOT the instruction again:
+    // ask speaks the full instruction, reveal just celebrates the check.
+    const REVEAL_LINES = [
+        'Look! Like this!',
+        'Ta-da! Here it comes!',
+        'Check it against yours!',
+        'Here is how it looks!',
+        'Peek! Did you draw it?'
+    ];
+
+    function shuffled(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+    }
 
     /* ---------------- Shapes, colours + positions (Cases 1-10) ---------------- */
     const SHAPES_CASES = [
@@ -1002,6 +1023,7 @@
             prompt: 'Listen and draw',
             spokenQuestion: picked.s[0],
             spokenAnswer: null,
+            reveals: shuffled(REVEAL_LINES),
             praise: pick(PRAISE)
         };
     }

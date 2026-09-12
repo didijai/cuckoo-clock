@@ -560,14 +560,21 @@
                         return;
                     }
                     if (!drawRevealed) {
-                        // First tap reveals the current step's answer art.
+                        // REVEAL: ink the current step's answer art. Speaks
+                        // a short check-in line (from the generator), never
+                        // a repeat of the instruction — that would sound
+                        // robotic. The full instruction stays one card-tap
+                        // away via speakQuestion.
                         drawRevealed = true;
                         renderDrawStep(q);
-                        speakWith(steps[drawStep]);
+                        speakWith((q.reveals && q.reveals[drawStep]) || 'Look! Like this!');
                         return;
                     }
                     if (drawStep < steps.length - 1) {
+                        // ASK next step: instruction only, art stays hidden
+                        // until its own reveal tap (no instant spoilers).
                         drawStep += 1;
+                        drawRevealed = false;
                         renderDrawStep(q);
                         speakWith(steps[drawStep]);
                         return;

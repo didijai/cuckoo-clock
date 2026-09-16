@@ -35,10 +35,23 @@
  *   {t:'person', c, x, y, s, dress?}    stick figure, (x,y) = head
  *                                       centre; dress = colour or null
  *   {t:'umbrella', c, x, y, s}          open umbrella, (x,y) = canopy top
+ *   {t:'txt', txt, c, x, y, s?}         written glyph (digit / letter),
+ *                                       centred on (x,y), s = font size
+ *                                       (def 40). Used by the 5-step grid
+ *                                       listening game (draw-grid).
+ *   {t:'grid'}                          predrawn 9-square grid paper
+ *                                       (3x3, x 60-240 / y 20-200). Never
+ *                                       used as a step — pass it as
+ *                                       opts.base so render() inks it as a
+ *                                       persistent background before the
+ *                                       first Show tap.
  *
  * Any shape accepts f:0 for "outline only" (stroke = colour, no fill).
  * API: LearnDrawArt.render(stageEl, groups, opts) — groups is an array
- * of per-step shape arrays; opts.finale adds the cheer to every group.
+ * of per-step shape arrays; opts.finale adds the cheer to every group;
+ * opts.base (array of specs, e.g. [{t:'grid'}]) is inked once as a
+ * persistent `g.dart-base` background layer that is always present
+ * (even with zero groups), never counted and never popped.
  *
  * Pen-on-paper rule: coordinates live in a fixed 300x220 viewBox and
  * render() only APPENDS groups it hasn't inked yet — strokes drawn on
@@ -217,6 +230,38 @@
         return out;
     }
 
+    // Written glyph (digit / capital letter): bold, centred, colour-filled
+    // with a contrasting hairline so dark colours stay readable on the
+    // dark card. paint-order keeps the stroke behind the fill.
+    function shapeTxt(txt, c, x, y, s) {
+        const size = s || 40;
+        const ch = String(txt == null ? '' : txt).slice(0, 2);
+        const esc = ch.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<text x="${num(x)}" y="${num(y)}" font-family="Inter, Arial, sans-serif" ` +
+            `font-size="${num(size)}" font-weight="900" text-anchor="middle" ` +
+            `dominant-baseline="central" fill="${col(c)}" stroke="${edgeFor(c)}" ` +
+            `stroke-width="0.8" paint-order="stroke">${esc}</text>`;
+    }
+
+    // Predrawn 9-square grid paper: 3x3 squares (60px cells) centred on
+    // the 300x220 canvas (x 60-240, y 20-200). Neutral slate lines so any
+    // glyph colour reads on top. Glyphs sit on cell centres:
+    //   cols x = 90 / 150 / 210, rows y = 50 / 110 / 170.
+    function shapeGrid() {
+        const x0 = 60, y0 = 20, cell = 60, span = 180;
+        let out = `<rect x="${x0}" y="${y0}" width="${span}" height="${span}" rx="6" ` +
+            `fill="rgba(148,163,184,0.07)" stroke="#94a3b8" stroke-width="3"/>`;
+        for (let i = 1; i < 3; i++) {
+            const vx = x0 + i * cell;
+            out += `<line x1="${vx}" y1="${y0}" x2="${vx}" y2="${y0 + span}" ` +
+                `stroke="#94a3b8" stroke-width="1.5" opacity="0.9"/>`;
+            const hy = y0 + i * cell;
+            out += `<line x1="${x0}" y1="${hy}" x2="${x0 + span}" y2="${hy}" ` +
+                `stroke="#94a3b8" stroke-width="1.5" opacity="0.9"/>`;
+        }
+        return out;
+    }
+
     function shapeUmbrella(c, x, y, s) {
         const r = 30 * s;
         return `<path d="M${num(x - r)},${num(y)} A${num(r)},${num(r)} 0 0 1 ${num(x + r)},${num(y)} Z" ${fillAttrs(c)}/>` +
@@ -295,6 +340,8 @@
             case 'tree': return shapeTree(spec.x, spec.y, spec.s || 1);
             case 'person': return shapePerson(spec.c, spec.x, spec.y, spec.s || 1, spec.dress);
             case 'umbrella': return shapeUmbrella(spec.c, spec.x, spec.y, spec.s || 1);
+            case 'txt': return shapeTxt(spec.txt, spec.c, spec.x, spec.y, spec.s);
+            case 'grid': return shapeGrid();
             default: return '';
         }
     }
@@ -313,12 +360,30 @@
     // paper, so earlier strokes keep their exact nodes and positions.
     // The newest group pops in (fresh node restarts the CSS pop);
     // finale cheers every group without touching their geometry.
+    // opts.base (e.g. the 9-square grid) is a persistent background layer:
+    // ensured on every render even with zero step groups, never counted
+    // as a step and never popped/cheered.
     function render(stageEl, groups, opts) {
         const finale = !!(opts && opts.finale);
+        // Explicit guard: only a non-empty spec array counts as a base
+        // layer (missing/empty -> any stale background is removed).
+        const hasBase = !!(opts && Array.isArray(opts.base) && opts.base.length);
+        const base = hasBase ? opts.base : null;
         let svg = stageEl.querySelector('svg');
         if (!svg) {
             stageEl.innerHTML = svgShell();
             svg = stageEl.querySelector('svg');
+        }
+        let baseG = svg.querySelector('g.dart-base');
+        if (hasBase) {
+            const html = base.map(shape).join('');
+            if (!baseG) {
+                svg.insertAdjacentHTML('afterbegin', `<g class="dart-base">${html}</g>`);
+            } else {
+                baseG.innerHTML = html;
+            }
+        } else if (baseG) {
+            baseG.remove();
         }
         const have = svg.querySelectorAll('g.dart-step').length;
         for (let i = have; i < groups.length; i++) {

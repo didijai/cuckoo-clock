@@ -7,7 +7,7 @@
  *   math.js            -> registers the five Math generators (one per
  *                         category).
  *   english.js         -> registers the English generator (K3 stories).
- *   drawing.js         -> registers the four drawing-game generators
+ *   drawing.js         -> registers the five drawing-game generators
  *                         (listen-and-draw step instructions + answer art).
  *   draw-art.js        -> SVG line-drawing renderer for the art specs.
  *   ui.js              -> rendering, TTS wiring, controls, boot.
@@ -48,7 +48,8 @@
                 'draw-shapes': { label: 'Draw Shapes', enabled: true },
                 'draw-objects': { label: 'Draw Objects', enabled: true },
                 'draw-nature': { label: 'Draw Nature', enabled: true },
-                'draw-scenes': { label: 'Draw Scenes', enabled: true }
+                'draw-scenes': { label: 'Draw Scenes', enabled: true },
+                'draw-grid': { label: 'Listen & Write (Numbers & Letters)', enabled: true }
             }
         },
         chinese: { label: 'Chinese', enabled: false },

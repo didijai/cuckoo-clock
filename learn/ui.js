@@ -191,24 +191,28 @@
             // reserved height — the paper below never slides between taps.
             card.classList.add('has-draw');
         }
-        // Correct-drawing stage (full-tab mode only): the line drawing
-        // for every tapped step accumulates into one picture, exactly as
-        // instructed. Docked mode stays text-only and glanceable.
+        // Correct-drawing stage: the line drawing for every tapped step
+        // accumulates into one picture, exactly as instructed. Plain
+        // drawing stays full-tab-only (docked keeps text-only glanceable),
+        // but grid questions (q.base) predraw their paper — the 9-square
+        // grid IS the question, so it shows from step 1 in BOTH modes.
         const stage = document.getElementById('drawStage');
         if (stage) {
-            if (!POPUP || !window.LearnDrawArt) {
+            const hasBase = !!(q.base && q.base.length);
+            if ((!POPUP && !hasBase) || !window.LearnDrawArt) {
                 stage.hidden = true;
                 stage.innerHTML = '';
             } else {
                 stage.hidden = false;
                 // Unrevealed current step contributes no art: fresh step 1
-                // renders a blank paper (same reserved space, no shifting).
+                // renders the base paper (grid) or a blank paper (same
+                // reserved space, no shifting).
                 const shown = drawDone ? steps.length : (drawRevealed ? drawStep + 1 : drawStep);
                 const groups = [];
                 for (let i = 0; i < shown; i++) {
                     if (q.art && q.art[i]) groups.push(q.art[i]);
                 }
-                window.LearnDrawArt.render(stage, groups, { finale: drawDone });
+                window.LearnDrawArt.render(stage, groups, { finale: drawDone, base: q.base });
             }
         }
     }

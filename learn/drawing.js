@@ -1,11 +1,23 @@
 /* ==========================================================================
  * Drawing generator — listen-and-draw instruction game (English).
  *
- * Four themed categories (picked from the 50 cases below):
+ * Five themed categories (picked from the cases below):
  *   draw-shapes   -> Cases 1-10:   shapes, colours + positions
  *   draw-objects  -> Cases 11-25:  numbers, size + everyday objects
  *   draw-nature   -> Cases 26-40:  animals, nature + environments
  *   draw-scenes   -> Cases 41-50:  multi-step scenarios + details
+ *   draw-grid     -> 9-square grid: digits/capitals composed on the fly
+ *                                  (numbers, letters + mixed — one merged
+ *                                  listening game, no fixed cases)
+ *
+ * Grid rule (listening test): every question is composed on the fly — 5
+ * distinct squares x 5 distinct colours x 5 glyphs, one per step, each
+ * naming its own colour + square. Glyphs sit on 9-square cell centres
+ * (cols x = 90/150/210, rows y = 50/110/170) so they never overlap. The
+ * grid paper is predrawn via q.base (draw-art.js {t:'grid'}) and step 1
+ * tells the kids ("We start with a 9-square grid. ..."). "Show" inks one
+ * glyph per tap via draw-art.js {t:'txt'}, exactly like the existing
+ * drawing stepper (ui.js steps through any steps.length).
  *
  * Each case = { s: [step instructions], a: [answer art per step] }.
  * The art is shape specs rendered by draw-art.js as simple line
@@ -1049,9 +1061,56 @@
         }
     ];
 
-    function buildDrawing(category, cases) {
+    /* ---------------- 9-square grid: composed on the fly ----------------
+     * No fixed cases here: generateDrawGrid below samples 5 distinct
+     * squares x 5 distinct colours x 5 glyphs per question (digits,
+     * capitals or mixed). Cell centres match shapeGrid() in draw-art.js. */
+    const GRID_CELLS = [
+        { x: 90, y: 50, name: 'top left' },
+        { x: 150, y: 50, name: 'top' },
+        { x: 210, y: 50, name: 'top right' },
+        { x: 90, y: 110, name: 'left' },
+        { x: 150, y: 110, name: 'middle' },
+        { x: 210, y: 110, name: 'right' },
+        { x: 90, y: 170, name: 'bottom left' },
+        { x: 150, y: 170, name: 'bottom' },
+        { x: 210, y: 170, name: 'bottom right' }
+    ];
+    const GRID_COLOURS = ['red', 'blue', 'green', 'yellow', 'pink', 'purple', 'orange'];
+    const GRID_DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    // Capitals minus I/O (heard/read as 1/0 over TTS and on paper).
+    const GRID_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L',
+        'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+
+    // Sample n distinct items without replacement.
+    function sampleN(arr, n) {
+        const pool = arr.slice();
+        const out = [];
+        while (out.length < n && pool.length) {
+            out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+        }
+        return out;
+    }
+
+    function gridArticle(colour) {
+        return /^[aeiou]/i.test(colour) ? 'an' : 'a';
+    }
+
+    // Interleave digits/capitals through the 5 steps so a mixed question
+    // never clumps (2 digits -> d,l,d,l,l; 3 digits -> d,l,d,l,d).
+    function interleaveDigitsLetters(ds, ls) {
+        const out = [];
+        let di = 0, li = 0;
+        for (let i = 0; i < 5; i++) {
+            if ((i % 2 === 0 && di < ds.length) || li >= ls.length) out.push(ds[di++]);
+            else out.push(ls[li++]);
+        }
+        return out;
+    }
+
+    function buildDrawing(category, cases, extra) {
         const picked = pick(cases);
-        return {
+        const q = {
             type: 'english',
             category,
             display: 'drawing',
@@ -1068,6 +1127,8 @@
             reveals: shuffled(REVEAL_LINES),
             praise: pick(PRAISE)
         };
+        if (extra) Object.assign(q, extra);
+        return q;
     }
 
     function generateDrawShapes() {
@@ -1086,10 +1147,63 @@
         return buildDrawing('draw-scenes', SCENES_CASES);
     }
 
+    // Composed fresh on every call: mode rotates numbers-only /
+    // letters-only / mixed (2-3 digits + rest capitals, interleaved).
+    // Squares, colours and glyphs are all sampled without replacement,
+    // so the 5 instructions always name 5 different squares in 5
+    // different colours. Step 1 tells the kids the paper starts as a
+    // 9-square grid (spoken + shown); the grid itself is predrawn via
+    // q.base so it is visible before the first Show tap.
+    const GRID_LEAD = 'We start with a 9-square grid. ';
+
+    function generateDrawGrid() {
+        const cells = sampleN(GRID_CELLS, 5);
+        const colours = sampleN(GRID_COLOURS, 5);
+        const roll = Math.random();
+        let glyphs;
+        if (roll < 0.34) {
+            glyphs = sampleN(GRID_DIGITS, 5);
+        } else if (roll < 0.67) {
+            glyphs = sampleN(GRID_LETTERS, 5);
+        } else {
+            const nDigits = 2 + Math.floor(Math.random() * 2); // 2 or 3
+            glyphs = interleaveDigitsLetters(
+                sampleN(GRID_DIGITS, nDigits),
+                sampleN(GRID_LETTERS, 5 - nDigits));
+        }
+        const steps = [];
+        const art = [];
+        for (let i = 0; i < 5; i++) {
+            steps.push('Write ' + gridArticle(colours[i]) + ' ' + colours[i] + ' ' +
+                glyphs[i] + ' in the ' + cells[i].name + ' square.');
+            art.push([{ t: 'txt', txt: glyphs[i], c: colours[i], x: cells[i].x, y: cells[i].y, s: 40 }]);
+        }
+        steps[0] = GRID_LEAD + steps[0];
+        return {
+            type: 'english',
+            category: 'draw-grid',
+            display: 'drawing',
+            kind: 'draw',
+            text: steps[0],
+            answer: '',
+            answerSentence: null,
+            hint: null,
+            steps: steps,
+            art: art,
+            prompt: 'Listen and write on the grid',
+            spokenQuestion: steps[0],
+            spokenAnswer: null,
+            reveals: shuffled(REVEAL_LINES),
+            praise: pick(PRAISE),
+            base: [{ t: 'grid' }]
+        };
+    }
+
     if (window.LearnCore) {
         window.LearnCore.registerGenerator('english', 'draw-shapes', generateDrawShapes);
         window.LearnCore.registerGenerator('english', 'draw-objects', generateDrawObjects);
         window.LearnCore.registerGenerator('english', 'draw-nature', generateDrawNature);
         window.LearnCore.registerGenerator('english', 'draw-scenes', generateDrawScenes);
+        window.LearnCore.registerGenerator('english', 'draw-grid', generateDrawGrid);
     }
 })();

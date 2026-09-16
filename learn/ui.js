@@ -306,6 +306,17 @@
             const st = document.getElementById('drawStage');
             if (st && window.LearnDrawArt) window.LearnDrawArt.clear(st);
             renderDrawStep(q);
+        } else {
+            // Non-drawing (math / word problems): the paper must go away
+            // entirely — otherwise a predrawn grid or stale art from a
+            // previous drawing question leaks under this question, in
+            // both docked and full-tab mode.
+            const st = document.getElementById('drawStage');
+            if (st) {
+                st.hidden = true;
+                if (window.LearnDrawArt) window.LearnDrawArt.clear(st);
+                else st.innerHTML = '';
+            }
         }
 
         // Keep the header subtitle in sync with the multi-select, e.g.

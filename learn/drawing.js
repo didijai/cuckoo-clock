@@ -2,7 +2,10 @@
  * Drawing generator — listen-and-draw instruction game (English).
  *
  * Five themed categories (picked from the cases below):
- *   draw-shapes   -> Cases 1-10:   shapes, colours + positions
+ *   draw-shapes   -> 9-square grid: shapes composed on the fly
+ *                                  (circle, triangle, star, square,
+ *                                  rectangle, dots, line, sun, heart,
+ *                                  cross — same game as draw-grid)
  *   draw-objects  -> Cases 11-25:  numbers, size + everyday objects
  *   draw-nature   -> Cases 26-40:  animals, nature + environments
  *   draw-scenes   -> Cases 41-50:  multi-step scenarios + details
@@ -81,149 +84,24 @@
         return a;
     }
 
-    /* ---------------- Shapes, colours + positions (Cases 1-10) ---------------- */
-    const SHAPES_CASES = [
-        {
-            s: [
-                'Draw a big blue circle in the middle.',
-                'Draw a small red triangle inside the circle.',
-                'Draw a yellow star on top of the circle.'
-            ],
-            a: [
-                [{ t: 'c', c: 'blue', x: 150, y: 108, r: 36 }],
-                // Pencil rule: outline triangle traces over the blue fill.
-                [{ t: 'tri', c: 'red', x: 138, y: 96, w: 24, h: 20, f: 0, sw: 3 }],
-                [{ t: 'star', c: 'yellow', x: 150, y: 48, r: 14 }]
-            ]
-        },
-        {
-            s: [
-                'Draw a green square in the center.',
-                'Draw a small blue door inside the square.',
-                'Draw an orange window next to the square.'
-            ],
-            a: [
-                [{ t: 'r', c: 'green', x: 96, y: 74, w: 64, h: 64 }],
-                // Pencil rule: blue door traces as an outline over the fill.
-                [{ t: 'r', c: 'blue', x: 119, y: 100, w: 20, h: 38, rx: 2, f: 0, sw: 4 }],
-                [
-                    { t: 'r', c: 'orange', x: 176, y: 88, w: 28, h: 28 },
-                    { t: 'ln', c: 'white', x1: 176, y1: 102, x2: 204, y2: 102, w: 3 },
-                    { t: 'ln', c: 'white', x1: 190, y1: 88, x2: 190, y2: 116, w: 3 }
-                ]
-            ]
-        },
-        {
-            s: [
-                'Draw a purple rectangle.',
-                'Draw three red dots inside the rectangle.',
-                'Draw a pink line around the rectangle.'
-            ],
-            a: [
-                [{ t: 'r', c: 'purple', x: 105, y: 80, w: 90, h: 60, rx: 4 }],
-                [{ t: 'dots', c: 'red', p: [[130, 100, 5], [150, 110, 5], [170, 100, 5]] }],
-                [{ t: 'r', c: 'pink', x: 97, y: 72, w: 106, h: 76, f: 0, sw: 5 }]
-            ]
-        },
-        {
-            s: [
-                'Draw a yellow sun in the top-right corner.',
-                'Draw two blue clouds next to the sun.'
-            ],
-            a: [
-                [{ t: 'sun', c: 'yellow', x: 252, y: 42, r: 20 }],
-                [
-                    { t: 'cloud', c: 'blue', x: 196, y: 58, s: 1 },
-                    { t: 'cloud', c: 'blue', x: 222, y: 78, s: 0.7 }
-                ]
-            ]
-        },
-        {
-            s: [
-                'Draw a black line at the bottom of the page.',
-                'Draw a red apple on the line.',
-                'Draw a green leaf on top of the apple.'
-            ],
-            a: [
-                [{ t: 'ln', c: 'black', x1: 40, y1: 192, x2: 260, y2: 192, w: 5 }],
-                [
-                    { t: 'c', c: 'red', x: 150, y: 174, r: 16 },
-                    { t: 'ln', c: 'brown', x1: 150, y1: 158, x2: 150, y2: 148, w: 4 }
-                ],
-                [{ t: 'e', c: 'green', x: 160, y: 144, rx: 10, ry: 5, rot: -30 }]
-            ]
-        },
-        {
-            s: [
-                'Draw a brown table in the center.',
-                'Draw a blue cup on top of the table.',
-                'Draw a red ball under the table.'
-            ],
-            a: [
-                [
-                    { t: 'r', c: 'brown', x: 100, y: 122, w: 100, h: 14 },
-                    { t: 'ln', c: 'brown', x1: 112, y1: 136, x2: 112, y2: 168, w: 5 },
-                    { t: 'ln', c: 'brown', x1: 188, y1: 136, x2: 188, y2: 168, w: 5 }
-                ],
-                [
-                    { t: 'r', c: 'blue', x: 140, y: 98, w: 20, h: 24, rx: 3 },
-                    { t: 'ln', c: 'blue', x1: 160, y1: 104, x2: 167, y2: 104, w: 3 }
-                ],
-                [{ t: 'c', c: 'red', x: 150, y: 184, r: 12 }]
-            ]
-        },
-        {
-            s: [
-                'Draw a big orange heart.',
-                'Draw a small yellow heart inside it.',
-                'Draw a green cross above the big heart.'
-            ],
-            a: [
-                [{ t: 'heart', c: 'orange', x: 150, y: 112, s: 6 }],
-                // Pencil rule: inner heart traces as an outline.
-                [{ t: 'heart', c: 'yellow', x: 150, y: 112, s: 2.4, f: 0, sw: 3 }],
-                [{ t: 'plus', c: 'green', x: 150, y: 34, s: 18 }]
-            ]
-        },
-        {
-            s: [
-                'Draw a pink box in the bottom-left corner.',
-                'Draw two green dots inside the box.',
-                'Draw a blue star outside the box.'
-            ],
-            a: [
-                [{ t: 'r', c: 'pink', x: 36, y: 140, w: 56, h: 56, rx: 6 }],
-                [{ t: 'dots', c: 'green', p: [[54, 162, 5], [74, 162, 5]] }],
-                [{ t: 'star', c: 'blue', x: 208, y: 84, r: 15 }]
-            ]
-        },
-        {
-            s: [
-                'Draw a grey cloud in the middle.',
-                'Draw three blue raindrops falling down from the cloud.',
-                'Draw a yellow lightning bolt beside the cloud.'
-            ],
-            a: [
-                [{ t: 'cloud', c: 'grey', x: 140, y: 88, s: 1.2 }],
-                [{ t: 'dots', c: 'blue', p: [[118, 124, 5], [140, 134, 5], [162, 124, 5]] }],
-                [{ t: 'bolt', c: 'yellow', x: 220, y: 108, s: 1.3 }]
-            ]
-        },
-        {
-            s: [
-                'Draw a red triangle in the center.',
-                'Draw a green stem underneath the triangle.',
-                'Draw two pink circles at the bottom of the stem.'
-            ],
-            a: [
-                [{ t: 'tri', c: 'red', x: 125, y: 70, w: 50, h: 48 }],
-                [{ t: 'ln', c: 'green', x1: 150, y1: 118, x2: 150, y2: 150, w: 5 }],
-                [
-                    { t: 'c', c: 'pink', x: 137, y: 160, r: 9 },
-                    { t: 'c', c: 'pink', x: 163, y: 160, r: 9 }
-                ]
-            ]
-        }
+    /* ---------------- 9-square grid: shapes composed on the fly ----------------
+     * Same listening-game shape as draw-grid (predrawn paper, 5 steps, one
+     * item per step): 5 distinct squares x 5 distinct colours x 5 distinct
+     * shapes, sampled fresh per question. Each maker returns the spec array
+     * for one square, sized to fit a 60px grid cell. Sample tables
+     * (GRID_CELLS / GRID_COLOURS) and helpers (sampleN / gridArticle) live
+     * with the grid section below; they resolve at call time. */
+    const GRID_SHAPES = [
+        { word: 'circle', make: (c, x, y) => [{ t: 'c', c: c, x: x, y: y, r: 15 }] },
+        { word: 'triangle', make: (c, x, y) => [{ t: 'tri', c: c, x: x - 13, y: y - 13, w: 26, h: 26 }] },
+        { word: 'star', make: (c, x, y) => [{ t: 'star', c: c, x: x, y: y, r: 16 }] },
+        { word: 'square', make: (c, x, y) => [{ t: 'r', c: c, x: x - 13, y: y - 13, w: 26, h: 26, rx: 3 }] },
+        { word: 'rectangle', make: (c, x, y) => [{ t: 'r', c: c, x: x - 17, y: y - 10, w: 34, h: 20, rx: 3 }] },
+        { word: 'dots', plural: true, make: (c, x, y) => [{ t: 'dots', c: c, p: [[x - 11, y, 4.5], [x, y, 4.5], [x + 11, y, 4.5]] }] },
+        { word: 'line', make: (c, x, y) => [{ t: 'ln', c: c, x1: x - 14, y1: y, x2: x + 14, y2: y, w: 5 }] },
+        { word: 'sun', make: (c, x, y) => [{ t: 'sun', c: c, x: x, y: y, r: 11 }] },
+        { word: 'heart', make: (c, x, y) => [{ t: 'heart', c: c, x: x, y: y, s: 2.2 }] },
+        { word: 'cross', make: (c, x, y) => [{ t: 'plus', c: c, x: x, y: y, s: 22 }] }
     ];
 
     /* ---------------- Numbers, size + everyday objects (Cases 11-25) ---------------- */
@@ -1131,8 +1009,46 @@
         return q;
     }
 
+    // Composed fresh on every call, mirroring generateDrawGrid: 5 distinct
+    // squares x 5 distinct colours x 5 distinct shapes. Step 1 tells the
+    // kids the paper starts as a 9-square grid (spoken + shown); the grid
+    // itself is predrawn via q.base so it is visible before the first
+    // Show tap.
     function generateDrawShapes() {
-        return buildDrawing('draw-shapes', SHAPES_CASES);
+        const cells = sampleN(GRID_CELLS, 5);
+        const colours = sampleN(GRID_COLOURS, 5);
+        const shapes = sampleN(GRID_SHAPES, 5);
+        const steps = [];
+        const art = [];
+        for (let i = 0; i < 5; i++) {
+            if (shapes[i].plural) {
+                steps.push('Draw three ' + colours[i] + ' ' + shapes[i].word +
+                    ' in the ' + cells[i].name + ' square.');
+            } else {
+                steps.push('Draw ' + gridArticle(colours[i]) + ' ' + colours[i] + ' ' +
+                    shapes[i].word + ' in the ' + cells[i].name + ' square.');
+            }
+            art.push(shapes[i].make(colours[i], cells[i].x, cells[i].y));
+        }
+        steps[0] = GRID_LEAD + steps[0];
+        return {
+            type: 'english',
+            category: 'draw-shapes',
+            display: 'drawing',
+            kind: 'draw',
+            text: steps[0],
+            answer: '',
+            answerSentence: null,
+            hint: null,
+            steps: steps,
+            art: art,
+            prompt: 'Listen and draw on the grid',
+            spokenQuestion: steps[0],
+            spokenAnswer: null,
+            reveals: shuffled(REVEAL_LINES),
+            praise: pick(PRAISE),
+            base: [{ t: 'grid' }]
+        };
     }
 
     function generateDrawObjects() {

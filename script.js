@@ -657,6 +657,15 @@ busReloadBtn.addEventListener('click', () => {
     triggerCpuSaver(); // explicit reload click: freeze clock+anim 10s (Samsung only)
 });
 
+// Heavy-boot cover-all: every bus iframe load (first-open restore,
+// explicit reload/swap, in-iframe navigation) extends the 10s freeze.
+// Idempotent with the click triggers above: click freezes at t+0,
+// load extends to load+10s through the real boot.
+busFrame.addEventListener('load', () => {
+    if (!busScheduleEnabled) return; // hidden panel: ignore
+    triggerCpuSaver();
+});
+
 // On narrow viewports, allow only ONE left-docked panel at a time so the
 // clock keeps enough room. When `keep` ('bus', 'learn' or 'media') opens
 // while another is also open (and the screen is below the coexist

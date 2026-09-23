@@ -343,6 +343,18 @@ body {
 .bird-wing { animation: birdFlap 5s ease-in-out infinite; transform-origin: right center; }
 .bird-wing-r { animation: birdFlap 5s ease-in-out infinite 0.05s; transform-origin: left center; }
 
+/* ===== CPU saver (Samsung Internet + hkbus iframe boot) =====
+    While body.cpu-saver is set (10s after an explicit bus show/reload
+    click), freeze every CSS animation in place so the iframe gets the
+    full CPU. `paused` keeps the current frame; removing the class
+    resumes smoothly. Transitions on doors/balcony also freeze. */
+body.cpu-saver *,
+body.cpu-saver *::before,
+body.cpu-saver *::after {
+    animation-play-state: paused !important;
+    transition: none !important;
+}
+
 /* ===== Floating Digital Time Display =====
     Absolutely positioned overlay so toggling it never changes the
     document flow / clock stage size. Clock keeps its exact scale.

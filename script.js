@@ -175,6 +175,38 @@ let ttsEngine = 'auto';        // effective engine sent to the iframe
 // auto-collapses the other). Above it they coexist side by side.
 const PANEL_COEXIST_MIN_WIDTH = 960;
 
+// ===== CPU saver for heavy hkbus iframe (Samsung Internet only) =====
+// The hkbus.app embed spikes CPU on low-power devices while it boots.
+// On SamsungBrowser only (PC is fast enough to ignore this), freeze the
+// clock JS loop + all CSS animations for 10s on explicit bus show/reload
+// clicks so the iframe gets the full CPU. Hardcoded 10s per spec.
+const CPU_SAVER_MS = 10000;
+let cpuSaverUntil = 0;
+let cpuSaverTimer = null;
+
+// UA gate: substring match is enough, no version check.
+function isCpuSaverDevice() {
+    try {
+        return /SamsungBrowser/i.test(navigator.userAgent || '');
+    } catch (err) {
+        return false;
+    }
+}
+
+// Start (or extend) the 10s freeze. Only called from explicit user
+// clicks: openBusRoute() open/swap path + busReloadBtn handler.
+// Skipping updateClockUI in tick() also mutes tick-tock + auto-chime
+// during the freeze (no sound scheduling = less CPU).
+function triggerCpuSaver() {
+    if (!isCpuSaverDevice()) return;
+    cpuSaverUntil = Date.now() + CPU_SAVER_MS;
+    if (document.body) document.body.classList.add('cpu-saver');
+    clearTimeout(cpuSaverTimer);
+    cpuSaverTimer = setTimeout(() => {
+        if (document.body) document.body.classList.remove('cpu-saver');
+    }, CPU_SAVER_MS);
+}
+
 // DOM Elements
 const hourHandGroup = document.getElementById('hourHandGroup');
 const minuteHandGroup = document.getElementById('minuteHandGroup');
@@ -603,6 +635,7 @@ function openBusRoute(route) {
     activeRouteUrl = route.url;
     busOpenTabLink.href = route.url;
     busFrame.src = route.url;
+    triggerCpuSaver(); // explicit show/swap click: freeze clock+anim 10s (Samsung only)
     if (!busScheduleEnabled) {
         busScheduleEnabled = true;
         collapseOtherPanel('bus'); // narrow screens: one panel at a time
@@ -621,6 +654,7 @@ function openBusRoute(route) {
 // is currently active: homepage or a shortcut route)
 busReloadBtn.addEventListener('click', () => {
     busFrame.src = currentBusUrl;
+    triggerCpuSaver(); // explicit reload click: freeze clock+anim 10s (Samsung only)
 });
 
 // On narrow viewports, allow only ONE left-docked panel at a time so the
@@ -1358,6 +1392,17 @@ if (window.ResizeObserver) {
 
 // Main Animation Frame Tick
 function tick() {
+    // CPU saver (Samsung only): skip clock DOM writes + tick/chime audio
+    // while the hkbus iframe boots. rAF stays alive so we resume cleanly.
+    // At most one tick plays on the resume frame (lastSecond catches up
+    // inside updateClockUI) — no burst possible since the loop ran zero
+    // times during the freeze.
+    if (Date.now() < cpuSaverUntil) {
+        // Realtime re-reads Date on resume; manual mode simply pauses 10s.
+        requestAnimationFrame(tick);
+        return;
+    }
+
     if (isRealTimeMode) {
         currentSimTime = new Date();
     } else {

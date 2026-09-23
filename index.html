@@ -669,8 +669,11 @@
             </a>
         </div>
 
-        <!-- Embedded live bus schedule (hkbus.app) -->
-        <iframe id="busFrame" title="HK Bus Schedule (hkbus.app)" loading="lazy"></iframe>
+        <!-- Embedded live bus schedule (hkbus.app).
+             allow="geolocation": cross-origin iframes are denied location
+             by default; without this the app's nearby-stops feature can
+             never work inside the panel (search still needs its route DB). -->
+        <iframe id="busFrame" title="HK Bus Schedule (hkbus.app)" loading="lazy" allow="geolocation"></iframe>
     </aside>
 
     <!-- Learn Panel: left-docked learning module (Math -> Addition for now).
